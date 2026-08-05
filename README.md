@@ -24,7 +24,9 @@ literalmente lo mismo que ya hacía cualquier desarrollador disciplinado
 antes de que existieran agentes. Si algún proyecto del equipo necesita
 memoria transaccional real (estado que sobrevive un crash, aprobación
 enforced en código, múltiples agentes coordinando sobre el mismo estado),
-esa es una herramienta distinta — ver sección 9.
+esa herramienta es 
+*[Context Guard](https://github.com/fdomerlo/context-guard)*
+— ver sección 9.
 
 Esto incluye los checkboxes de los planes: **marcar un criterio como
 cumplido es un acto cooperativo del mismo agente que hizo el trabajo.**
@@ -33,46 +35,28 @@ solo lo que puede demostrar en el momento, y dejar sin marcar lo que
 requiere verificación humana — pero eso sigue siendo una regla que se
 respeta, no un mecanismo que se impone.
 
-La única pieza de esta skill que **sí** está enforced en código, no en
-prosa, es el hook de commits (sección 8). Todo lo demás depende de que el
+La única pieza de esta skill que **sí** está enforced en código, 
+es el hook de commits (sección 8). Todo lo demás depende de que el
 agente lo respete.
 
 ## 3. Instalación
 
-### 3.1 Decisión de equipo: scope de proyecto, no personal
-
-Instalá la skill **dentro de cada repo** (`.claude/skills/`), commiteada
-al control de versiones — no como skill global personal de cada
-integrante (`~/.claude/skills/`). Razón concreta, no preferencia
-estética: si cada persona la instala globalmente y alguien edita su copia
-para un caso puntual, en semanas el equipo termina con N versiones
-ligeramente distintas del mismo contrato, sin que nadie lo note hasta que
-alguien pregunta por qué el review de otro compañero exige cosas
-distintas. Con la skill versionada en el repo, un cambio al contrato es un
-PR normal, revisado como cualquier otro — el propio proceso de review es
-el control de calidad de la skill.
+### 3.1 Claude Code CLI
 
 ```bash
 mkdir -p .claude/skills
-# extraer el .skill (es un zip) directo en el destino:
-unzip disciplined-scaffold.skill -d .claude/skills/
-git add .claude/skills/disciplined-scaffold
-git commit -m "chore: add disciplined-scaffold skill"
+unzip disciplined-scaffold.zip -d .claude/skills/
 ```
 
-Con esto, cualquiera que clone el repo la tiene disponible sin paso manual.
-
-### 3.2 Claude Code CLI
-
-Cubierto por 3.1 si se instaló a nivel de proyecto. Se descubre sola al
-abrir Claude Code en el repo. Invocación manual disponible con
+Si se instaló a nivel de proyecto. Se descubre sola al abrir Claude 
+Code en el repo. Invocación manual disponible con
 `/disciplined-scaffold` si querés forzarla sin depender de que el agente
 la considere relevante por su cuenta.
 
-### 3.3 Antigravity CLI
+### 3.2 Antigravity CLI y OpenCode
 
 Misma carpeta sirve: Antigravity CLI lee skills de workspace en
-`.agents/skills/`. Si preferís consistencia entre hosts, copiá el mismo
+`.agents/skills/`. Si se prefiere consistencia entre hosts, copiá el mismo
 contenido ahí también:
 
 ```bash
@@ -80,12 +64,7 @@ mkdir -p .agents/skills
 cp -r .claude/skills/disciplined-scaffold .agents/skills/
 ```
 
-*(Nota de mantenimiento: son dos copias físicas hasta que unifiquemos el
-mecanismo de instalación entre hosts — si el equipo actualiza el
-contrato, hay que actualizar las dos carpetas en el mismo commit. Vale la
-pena automatizar esto con un script si el equipo crece.)*
-
-### 3.4 OpenCode — requiere un paso extra
+#### 3.2.1 OpenCode — requiere un paso extra
 
 OpenCode no carga skills de forma nativa. Hace falta un command que
 apunte al contenido en vez de duplicarlo:
@@ -95,15 +74,15 @@ apunte al contenido en vez de duplicarlo:
 ---
 description: Bootstrap this repo or start a plan cycle using disciplined-scaffold
 ---
-Read `.claude/skills/disciplined-scaffold/SKILL.md` and follow it for: $ARGUMENTS
+Read `.agents/skills/disciplined-scaffold/SKILL.md` and follow it for: $ARGUMENTS
 ```
 
-### 3.5 Claude Chat (para uso individual, no de equipo)
+### 3.3 Claude Chat (para uso individual, no de equipo)
 
-Cada persona puede además guardarla en su cuenta personal de Claude vía el
-botón *Save skill* al recibir el archivo `.skill` — útil para planificar
-desde el chat antes de tener un repo abierto. Esto es individual y no
-sustituye la instalación de equipo de 3.1.
+Cada persona puede además guardarla en su cuenta personal de Claude vía botón 
+*Save skill* al recibir el archivo (reemplazar extensión `.zip` con `.skill`)
+Útil para planificar desde el chat antes de tener un repo abierto. Esto es 
+individual y complementa, no sustituye, la instalación en el repo.
 
 ## 4. Los archivos de contrato: `AGENTS.md` + `CLAUDE.md`
 
@@ -125,10 +104,10 @@ symlink (`ln -s AGENTS.md CLAUDE.md`), igual de oficial, pero requiere
 modo desarrollador o permisos elevados en Windows — por eso la skill usa
 el import por defecto.
 
-**Regla de oro del equipo: nunca copiar la prosa del contrato en los dos
-archivos.** Dos copias de un contrato son dos contratos, y van a divergir.
-Si alguien encuentra un `CLAUDE.md` con contenido propio en un repo del
-equipo, es un bug: hay que consolidarlo en `AGENTS.md` y dejar el import.
+**Nunca copiar la prosa del contrato en los dos archivos.** Dos copias 
+de un contrato son dos contratos, y van a divergir. Si se encuentra un 
+`CLAUDE.md` con contenido propio en el mismo repo, es un bug: hay que 
+consolidarlo en `AGENTS.md` y dejar el import.
 
 ## 5. Flujo A — Bootstrap de un repo
 
@@ -136,14 +115,14 @@ Cuándo: repo nuevo, o uno existente sin convenciones claras para agentes.
 
 **Ejemplo de interacción real:**
 
-> **Vos:** "Arrancamos un proyecto nuevo en Python con FastAPI, quiero
+> **Humano:** "Arrancamos un proyecto nuevo en Python con FastAPI, quiero
 > setear las convenciones para trabajar con agentes."
 >
 > **Agente** (consulta la skill, pregunta lo mínimo):
 > "¿Qué comando corre la suite de tests? ¿Instalo también el git hook que
 > rechaza commits que no sigan conventional commits?"
 >
-> **Vos:** "pytest, y sí al hook."
+> **Humano:** "pytest, y sí al hook."
 >
 > **Agente:** escribe `AGENTS.md` con el contrato completo (commits
 > convencionales, `pytest` como test command, la cláusula de "plan mode"),
@@ -157,12 +136,12 @@ agente que trabaje en ese repo desde ahora siga las mismas reglas.
 
 Cuándo: el trabajo va a llevar más de una sesión, más de una persona va a
 tocar el diff antes de mergear, o un error ahí sale caro. Un fix de un
-archivo no necesita esto — pedirlo directo, con buen mensaje de commit, es
-más disciplinado que la ceremonia de un plan innecesario.
+archivo no necesita esto — pedirlo directo, con buen mensaje de commit, 
+es más disciplinado que la ceremonia de un plan innecesario.
 
 **Ejemplo de interacción real:**
 
-> **Vos:** "Necesitamos migrar el sistema de autenticación de sesiones a
+> **Humano:** "Necesitamos migrar el sistema de autenticación de sesiones a
 > JWT. Es grande, va a llevar varias sesiones de trabajo."
 >
 > **Agente** (antes de escribir nada, pregunta lo que cambiaría la forma
@@ -171,7 +150,7 @@ más disciplinado que la ceremonia de un plan innecesario.
 > Recomiendo dejarlos afuera: duplican el alcance de F1 y no bloquean la
 > migración. ¿De acuerdo?"
 >
-> **Vos:** "De acuerdo, afuera."
+> **Humano:** "De acuerdo, afuera."
 >
 > **Agente:** crea `PLAN-1.md` en la raíz del repo, con el objetivo en una
 > oración, evidencia de por qué, y fases concretas (F1: capa de emisión y
@@ -182,9 +161,9 @@ más disciplinado que la ceremonia de un plan innecesario.
 > dos líneas: *"revisé el plan: F2 tenía un criterio no verificable, lo
 > reescribí."*
 >
-> **Vos:** revisás el plan, ajustás lo que haga falta, y confirmás.
+> **Humano:** *revisa el plan, ajusta lo que haga falta, y confirma*.
 >
-> **En cada sesión posterior**, alguien del equipo tipea:
+> **En cada sesión posterior:**
 > "Ejecutá la Fase F1 según PLAN-1.md."
 >
 > El agente trabaja *solo esa fase*, y al terminar hace el cierre de fase
@@ -193,7 +172,7 @@ más disciplinado que la ceremonia de un plan innecesario.
 
 Si el agente encuentra el plan ambiguo o cree que está mal planteado,
 **para y pregunta** en vez de adivinar — es la regla no negociable de todo
-el sistema. Si hay una decisión que solo el equipo puede tomar, el plan
+el sistema. Si hay una decisión que solo el humano puede tomar, el plan
 puede entregarse igual, pero con esa decisión marcada como bloque
 `## DECISIÓN ABIERTA` que el ejecutor tiene prohibido pasar de largo.
 
@@ -249,8 +228,8 @@ nosotros mismos.
 
 ## 9. Relación con context-guard — cuándo usar cada una
 
-`disciplined-scaffold` y `context-guard` son herramientas hermanas, no una
-reemplaza a la otra:
+`disciplined-scaffold` y `context-guard` son herramientas que atacan 
+distintas etapas del desarrollo de softwarera:
 
 - **Solo disciplina de commits + ciclos planificados**, sin necesidad de
   que el estado sobreviva un crash entre sesiones → `disciplined-scaffold`
@@ -263,13 +242,13 @@ reemplaza a la otra:
 
 **Camino de ascenso:** un `PLAN-N.md` generado por esta skill es el
 formato de entrada que `context-guard` sabe leer. Si a mitad de un ciclo
-el trabajo resulta más caro de lo previsto, se puede subir de categoría
+el trabajo resulta más cosotso de lo previsto, se puede subir de categoría
 sin reescribir el plan a mano.
 
 No se instalan una dentro de la otra. Un mismo repo puede perfectamente
 tener las dos si el proyecto lo justifica: el contrato de
 `disciplined-scaffold` para el día a día, y `context-guard` para los
-ciclos de trabajo donde perder una sesión sería costoso.
+ciclos de trabajo donde perder una sesión sería crítico.
 
 ## 10. Troubleshooting
 
@@ -329,7 +308,7 @@ como código, no como convención verbal:
 
 | Acción | Comando / paso |
 |---|---|
-| Instalar en un repo (equipo) | `unzip disciplined-scaffold.skill -d .claude/skills/`, commitear |
+| Instalar en un repo | `unzip disciplined-scaffold.zip -d .claude/skills/`, commitear |
 | Arrancar el contrato en un repo nuevo | Pedile al agente que bootstrapee el repo (Flujo A) |
 | Empezar un trabajo grande | Pedile al agente un plan de fases (Flujo B) |
 | Ejecutar una fase | `"Ejecutá la Fase F{N} según PLAN-{N}.md"` |
@@ -338,13 +317,3 @@ como código, no como convención verbal:
 | Forzar la skill en Claude Code | `/disciplined-scaffold` |
 | Bypass del hook en una emergencia | `git commit --no-verify` |
 | ¿Necesito memoria transaccional real? | Ver sección 9 → `context-guard` |
-
----
-
-## Changelog del manual
-
-**v2** — `AGENTS.md` pasa a ser el contrato único (con `CLAUDE.md` como
-import de una línea); criterios de aceptación como checkboxes que se
-marcan al cerrar cada fase; nuevo Flujo C (cierre de fase y de ciclo); el
-agente interroga ambigüedades de alto impacto y auto-audita el plan antes
-de entregarlo; camino de ascenso a `context-guard` documentado.
