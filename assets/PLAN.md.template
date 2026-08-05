@@ -1,0 +1,36 @@
+# PLAN-{{N}} — {{TITLE}}
+
+{{ONE_SENTENCE_OBJECTIVE}}
+
+## Diagnosis / evidence
+
+{{WHAT_IS_WRONG_OR_NEEDED_AND_HOW_YOU_KNOW}}
+
+## F1 — {{PHASE_1_NAME}}
+
+{{WHAT_CHANGES_AND_WHY}}
+
+**Spec:**
+{{CONCRETE_SPEC}}
+
+**Tests:** write the adversarial test first, confirm it fails against the
+current code (RED), then fix, then confirm GREEN.
+{{WHAT_THE_TESTS_MUST_PROVE}}
+
+**Acceptance criteria** (ticked as demonstrated, never in advance):
+- [ ] {{CHECKABLE_CRITERION_1}}
+- [ ] {{CHECKABLE_CRITERION_2}}
+
+<!-- Repeat an F-block per phase. Keep each phase small enough to review
+     as one diff. If a phase needs a second phase to make sense, that's
+     two phases, not one. -->
+
+## Out of scope
+
+{{THINGS_DELIBERATELY_NOT_DONE_IN_THIS_CYCLE_AND_WHY}}
+
+## Criteria for the whole cycle
+
+- [ ] Full suite green.
+- [ ] Every phase's acceptance criteria met and demonstrated.
+- [ ] Nothing from "Out of scope" leaked into a phase diff.

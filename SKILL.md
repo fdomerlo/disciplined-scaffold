@@ -1,0 +1,80 @@
+---
+name: disciplined-scaffold
+description: Bootstrap a repository with an AI-agent executor contract (AGENTS.md, conventional commits, atomic diffs, test-before-commit) and, for multi-session work, scaffold a phased PLAN-N.md that governs an agent through a planned cycle with human audit at each phase. Use this whenever the user is starting a new project or repo with an AI coding agent, asks for "conventional commits" or "commit discipline" setup, wants an AGENTS.md/CLAUDE.md contract for Claude Code/OpenCode/Antigravity/Codex/Cursor, describes a multi-step or multi-session piece of work that needs a plan before implementation, says things like "let's plan this out first," "break this into phases," or "I want an executor contract like before," is finishing a phase and needs the plan updated, or wants to formalize the plan → phase → human-audit → merge workflow. Trigger even if the user doesn't use the word "skill" or "scaffold" explicitly — recognize the underlying need for planned, disciplined, multi-session agent work.
+---
+
+# Disciplined Scaffold
+
+Packages a pattern for working with AI coding agents across multiple
+sessions without losing discipline: conventional commits, one phase per
+session, human review of every diff before merge, and an agent that stops
+to ask instead of guessing when a plan is ambiguous.
+
+**Honest scope, read this first.** This is a *prose contract* — conventions
+an agent reads and (usually) follows, not code-enforced state. It gives you
+maybe 80% of the value of a full transactional workflow engine for a
+fraction of the setup. If you need crash-safe state, multi-agent locking,
+or a hard approval gate enforced in code rather than in text, that's a
+different, heavier tool — see "Upgrade path" below. Say so to the user if
+they ask for guarantees this can't give.
+
+## Three entry points
+
+**A — Bootstrap a repo** (new project, or adding discipline to an
+existing one). See `references/bootstrap.md`.
+
+**B — Start a plan cycle** (the current task is big enough to need
+phases). See `references/plan-cycle.md`.
+
+**C — Close a phase or a cycle** (a phase just finished; or the last
+phase did and the cycle needs a closing pass). See
+`references/phase-close.md`.
+
+Routing: brand-new repo or "set up commit conventions" → A. A described
+piece of multi-step work → B. "Terminé la fase / phase done / what's
+left?" with an existing `PLAN-*.md` → C. A and B often chain — bootstrap
+first, then start a cycle.
+
+## Before doing any of them, ask once (skip what you can infer)
+
+1. Primary language/stack of the project (for the test-runner line in the
+   contract).
+2. Chat language: default to mirroring the language the user is writing in
+   right now. Code, comments, commit messages, and any file inside the
+   project are **always English** regardless of chat language — say this
+   explicitly, don't assume the user wants their spoken language in code.
+3. For B and C: read every existing `PLAN-*.md` first — the next phase
+   number, the out-of-scope list, and the checkbox state are already
+   decided there.
+
+Do not turn this into a long interview. Two or three short questions, then
+act — same principle the contract itself enforces on the executor.
+
+## Files this skill writes
+
+- `AGENTS.md` at repo root (bootstrap) — from `assets/AGENTS.md.template`.
+  **Single source of truth**, read natively by OpenCode, Antigravity,
+  Codex, Cursor and others.
+- `CLAUDE.md` at repo root — one line: `@AGENTS.md`. Claude Code does not
+  read `AGENTS.md` natively; this import is Anthropic's documented pattern
+  and, unlike a symlink, works on Windows without special permissions.
+  Never fork the contract prose into both files.
+- `PLAN-N.md` at repo root (plan cycle) — from `assets/PLAN.md.template`.
+  N = next unused number; follow the repo's existing convention if there
+  is one (e.g. `PLAN-2.4` → `PLAN-2.5`), otherwise plain integers from 1.
+- Optional: `scripts/commit-msg-hook.sh` installed as
+  `.git/hooks/commit-msg` — the one rule in this skill that can actually
+  be enforced in code instead of prose, so it is. Offer it, don't force it.
+
+## Upgrade path
+
+When a project outgrows a prose contract — state must survive a crash
+mid-phase, or approval must be enforced in code rather than trusted —
+`context-guard` (`uv tool install context-guard-cli`) takes a `PLAN-N.md`
+and materialises it as transactional changes. The plan format this skill
+writes is the input format that tool expects; nothing is rewritten by
+hand.
+
+Full templates and the reasoning behind each rule are in `references/` —
+read the relevant one before writing anything, don't improvise the
+contract from memory.

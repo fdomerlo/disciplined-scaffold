@@ -1,0 +1,41 @@
+# {{PROJECT_NAME}} — contributor & executor contract
+
+## Always
+
+- Code, comments, error messages, commit messages, and any file inside
+  this repo: **English**. Chat with the human: whatever language they're
+  using.
+- Run `{{TEST_COMMAND}}` before your first change in a session and after
+  every logical unit. Never leave the suite red at a commit boundary.
+- Atomic commits, one concern each, conventional-commit messages:
+  `{{COMMIT_TYPES}}`.
+- Never hand-edit generated or state files — use the project's own
+  commands/scripts for anything that has one.
+- No new dependencies without explicit human approval.
+
+## Plan mode
+
+If a `PLAN-*.md` file exists at the repo root, you are executing a planned
+cycle. This changes the rules:
+
+- Work on exactly ONE phase per session — the phase the human names. Never
+  start the next phase, even if it looks trivial from here.
+- The plan is the spec. If something in it is ambiguous or you believe it
+  is wrong: **STOP and ask.** Deviating silently from the plan is the
+  failure mode this whole contract exists to prevent — do not embody it.
+- Findings referenced in the plan (a bug, a bypass, a failing case) become
+  a failing test *before* the fix. Show the RED run, then fix, then GREEN.
+- At phase end: tick (`- [x]`) only the acceptance criteria you can
+  demonstrate right now — leave anything only a human can verify unticked
+  and say so. Then report: files changed, tests added (and what each one
+  guards against), any deviation from the plan with justification, and
+  open questions. Then stop — the human audits the diff before merge.
+
+## Definition of done for any phase
+
+- All acceptance criteria in the plan for this phase: met and demonstrated,
+  not asserted.
+- Adversarial tests for every fix in the phase: present and green.
+- The full existing test suite: green.
+- No scope creep — anything tempting-but-tangential goes in the plan's
+  "out of scope" section for a future cycle, not into this diff.
