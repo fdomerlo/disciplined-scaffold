@@ -1,16 +1,6 @@
-# Manual — disciplined-scaffold
+# Manual — disciplined-scaffold.skill
 
-Guía de uso completa para el equipo. Cubre instalación en las superficies
-soportadas, los tres flujos de trabajo, gobernanza para uso en equipo, y
-troubleshooting.
-
-*(Este manual está en español porque es la lengua de trabajo del equipo.
-El contenido que la skill genera — código, commits, `AGENTS.md`,
-`PLAN-N.md` — siempre queda en inglés, por diseño; ver sección 2.)*
-
----
-
-## 1. Qué es, en tres líneas
+## 1. Qué es, en pocas palabras
 
 `disciplined-scaffold` es una skill que instala dos cosas en un repo:
 un contrato de convenciones para cualquier agente de IA que trabaje ahí
