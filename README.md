@@ -145,6 +145,24 @@ de un contrato son dos contratos, y van a divergir. Si se encuentra un
 `CLAUDE.md` con contenido propio en el mismo repo, es un bug: hay que 
 consolidarlo en `AGENTS.md` y dejar el import.
 
+### 4.1 Convivencia con `GEMINI.md`, `.agents/rules/` y `.claude/rules/`
+
+Es crucial distinguir entre dos tipos de archivos de instrucciones:
+
+- **Contrato de Proceso (`AGENTS.md`)**: Gobierna la disciplina de trabajo del
+  agente (commits convencionales, suite verde en cada límite de commit, paradas
+  ante ambigüedad y ciclo de fases). Es neutral al stack y agnóstico de la herramienta.
+- **Reglas de Código y Dominio (`GEMINI.md`, `.agents/rules/`, `.claude/rules/`)**:
+  Gobiernan las directrices técnicas del proyecto (arquitectura, estilo de código,
+  librerías prohibidas o convenciones de API).
+
+**No colisionan ni se anulan:**
+En Antigravity, tanto `AGENTS.md` como `GEMINI.md` y las reglas modulares de `.agents/rules/*.md`
+se descubren y cargan automáticamente en el contexto del agente. De igual forma, en Claude Code,
+`CLAUDE.md` importa `@AGENTS.md` mientras que las reglas de `.claude/rules/` se cargan
+en paralelo. `AGENTS.md` formaliza el proceso sin interferir con las reglas técnicas ya
+establecidas en el repositorio.
+
 ## 5. Flujo A — Bootstrap de un repo
 
 Cuándo: repo nuevo, o uno existente sin convenciones claras para agentes.
