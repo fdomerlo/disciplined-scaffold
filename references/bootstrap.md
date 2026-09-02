@@ -2,14 +2,32 @@
 
 ## Steps
 
+### Option 1 — Automated via script (Recommended)
+
+Run `scripts/init.sh` from this skill (resolves templates and paths automatically):
+
+```bash
+bash <path-to-skill>/scripts/init.sh --test-cmd "<TEST_COMMAND>" [--with-hook] [--project-name "<NAME>"]
+```
+
+Options:
+- `-t, --test-cmd`: Test suite command (e.g. `pytest`, `npm test`, `cargo test`).
+- `--with-hook`: Automatically installs and activates `.git/hooks/commit-msg`.
+- `-p, --project-name`: Explicit project name (defaults to target directory name).
+- `-d, --target-dir`: Target repository root (defaults to `.`).
+- `-f, --force`: Overwrite existing contract files if re-initializing.
+
+### Option 2 — Manual step-by-step (Fallback)
+
 1. Confirm repo root (git init if needed — ask first, don't init silently
    over an existing non-git project).
 2. Fill `assets/AGENTS.md.template` placeholders:
+   - `{{PROJECT_NAME}}` — name of the repository/project.
    - `{{TEST_COMMAND}}` — the project's actual test invocation. Ask if not
      obvious from the stack (don't guess `pytest` for a project that turns
      out to use `unittest` or `go test`).
-   - `{{COMMIT_TYPES}}` — default: `feat, fix, docs, refactor, test, chore,
-     release`. Ask only if the project has an existing convention to match.
+   - `{{COMMIT_TYPES}}` — default: `feat, fix, docs, style, refactor, perf, test, build, ci, chore, revert, release`.
+     Ask only if the project has an existing convention to match.
 3. Write the filled template to `AGENTS.md` at the repo root. This is the
    single source of truth — OpenCode, Antigravity, Codex and Cursor read
    it natively.
@@ -19,20 +37,18 @@
    @AGENTS.md
    ```
 
-   Claude Code does not read `AGENTS.md` natively (still true as of Claude
-   Code 2.1.x, July 2026, despite a heavily-upvoted request); this import
-   is Anthropic's own documented workaround. A symlink
-   (`ln -s AGENTS.md CLAUDE.md`) also works and is equally official, but
-   needs developer mode or elevated permissions on Windows — prefer the
-   import unless the user asks otherwise.
+   Claude Code uses `CLAUDE.md` as its entry point; this `@AGENTS.md`
+   import is Anthropic's documented pattern to include external markdown
+   rules without duplicate maintenance. A symlink (`ln -s AGENTS.md CLAUDE.md`)
+   also works and is equally valid, but needs developer mode or elevated
+   permissions on Windows — prefer the import directive unless requested otherwise.
 
    **Never copy the contract prose into both files.** Two copies of a
    contract is two contracts, and they will diverge.
 5. Offer, don't force, the commit-msg hook:
-   > "Quiero instalar un git hook que rechace commits que no sigan
-   > conventional commits — así la regla no depende de que el agente se
-   > acuerde. ¿Lo instalo?"
-   If yes: copy `scripts/commit-msg-hook.sh` to `.git/hooks/commit-msg`,
+   - **EN**: `"I can install a git commit-msg hook that rejects commits not following Conventional Commits, so discipline doesn't rely solely on agent memory. Shall I install it?"`
+   - **ES**: `"Puedo instalar un git hook que rechace commits que no sigan Conventional Commits, así la regla no depende solo de la memoria del agente. ¿Lo instalo?"`
+   If yes: copy `<skill-dir>/scripts/commit-msg-hook.sh` to `.git/hooks/commit-msg`,
    `chmod +x`, and tell the user it can be bypassed with
    `git commit --no-verify` (say this — a hook nobody knows how to bypass
    in an emergency gets deleted instead of respected).

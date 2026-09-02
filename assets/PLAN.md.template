@@ -13,8 +13,9 @@
 **Spec:**
 {{CONCRETE_SPEC}}
 
-**Tests:** write the adversarial test first, confirm it fails against the
-current code (RED), then fix, then confirm GREEN.
+**Tests:**
+- For fixes/regressions: write the adversarial test first, confirm it fails against current code (RED), then fix, then confirm GREEN.
+- For new features/refactoring: verify baseline suite passes, add specification tests for new behavior, and verify full green suite.
 {{WHAT_THE_TESTS_MUST_PROVE}}
 
 **Acceptance criteria** (ticked as demonstrated, never in advance):

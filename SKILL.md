@@ -1,6 +1,6 @@
 ---
 name: disciplined-scaffold
-description: Bootstrap a repository with an AI-agent executor contract (AGENTS.md, conventional commits, atomic diffs, test-before-commit) and, for multi-session work, scaffold a phased PLAN-N.md that governs an agent through a planned cycle with human audit at each phase. Use this whenever the user is starting a new project or repo with an AI coding agent, asks for "conventional commits" or "commit discipline" setup, wants an AGENTS.md/CLAUDE.md contract for Claude Code/OpenCode/Antigravity/Codex/Cursor, describes a multi-step or multi-session piece of work that needs a plan before implementation, says things like "let's plan this out first," "break this into phases," or "I want an executor contract like before," is finishing a phase and needs the plan updated, or wants to formalize the plan → phase → human-audit → merge workflow. Trigger even if the user doesn't use the word "skill" or "scaffold" explicitly — recognize the underlying need for planned, disciplined, multi-session agent work.
+description: Bootstraps repositories with an AI executor contract (AGENTS.md, conventional commits hook) or scaffolds structured, phased PLAN-N.md cycles with human audit between phases. Trigger when starting a new project, setting up commit conventions, breaking multi-session work into phases, or closing an execution phase.
 ---
 
 # Disciplined Scaffold
@@ -50,8 +50,10 @@ first, then start a cycle.
 Do not turn this into a long interview. Two or three short questions, then
 act — same principle the contract itself enforces on the executor.
 
-## Files this skill writes
+## Files this skill writes and tools included
 
+- `scripts/init.sh` — automated CLI runner that bootstraps `AGENTS.md`, `CLAUDE.md`, and the git hook in one deterministic step.
+- `scripts/new-plan.sh` — helper script that scaffolds the next unused `PLAN-N.md` (or `plans/PLAN-N.md`) with title and phase template.
 - `AGENTS.md` at repo root (bootstrap) — from `assets/AGENTS.md.template`.
   **Single source of truth**, read natively by OpenCode, Antigravity,
   Codex, Cursor and others.
@@ -59,7 +61,7 @@ act — same principle the contract itself enforces on the executor.
   read `AGENTS.md` natively; this import is Anthropic's documented pattern
   and, unlike a symlink, works on Windows without special permissions.
   Never fork the contract prose into both files.
-- `PLAN-N.md` at repo root (plan cycle) — from `assets/PLAN.md.template`.
+- `PLAN-N.md` at repo root (or `plans/`) — from `assets/PLAN.md.template`.
   N = next unused number; follow the repo's existing convention if there
   is one (e.g. `PLAN-2.4` → `PLAN-2.5`), otherwise plain integers from 1.
 - Optional: `scripts/commit-msg-hook.sh` installed as
@@ -70,11 +72,11 @@ act — same principle the contract itself enforces on the executor.
 
 When a project outgrows a prose contract — state must survive a crash
 mid-phase, or approval must be enforced in code rather than trusted —
-`context-guard` (`uv tool install context-guard-cli`) takes a `PLAN-N.md`
-and materialises it as transactional changes. The plan format this skill
-writes is the input format that tool expects; nothing is rewritten by
-hand.
+an external transactional workflow engine (such as `context-guard`) can
+materialise `PLAN-N.md` as code-enforced changes. The plan format this skill
+writes is designed to serve directly as structured input without manual
+rewriting.
 
-Full templates and the reasoning behind each rule are in `references/` —
-read the relevant one before writing anything, don't improvise the
-contract from memory.
+Full templates and detailed reference manuals are located inside this skill's
+directory (under `assets/` and `references/`) — read the relevant reference
+file before writing anything, don't improvise the contract from memory.

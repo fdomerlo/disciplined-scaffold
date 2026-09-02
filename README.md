@@ -1,4 +1,4 @@
-# Manual — disciplined-scaffold.skill
+# Disciplined Scaffold
 
 ## 1. Qué es, en pocas palabras
 
@@ -14,6 +14,46 @@ No reemplaza buen criterio. Formaliza el que ya tenían las personas del
 equipo que trabajaban bien con agentes, para que todos lo tengan desde el
 primer día en cualquier repo nuevo.
 
+### 1.1 Mapa general de los tres flujos
+
+```mermaid
+flowchart TD
+    subgraph FlowA["Flujo A — Bootstrap del Repositorio"]
+        A1["Repo nuevo o sin disciplina"] --> A2["Ejecutar scripts/init.sh o interactuar con el agente"]
+        A2 --> A3["Crear AGENTS.md y CLAUDE.md (@AGENTS.md)"]
+        A2 --> A4["Instalar hook .git/hooks/commit-msg"]
+        A3 & A4 --> A5["Repositorio listo con contrato de disciplina"]
+    end
+
+    subgraph FlowB["Flujo B — Ciclo de Planificación"]
+        B1["Tarea compleja o multi-sesión"] --> B2["Resolver ambigüedad (máx. 3 preguntas con recomendación)"]
+        B2 --> B3["Crear PLAN-N.md (scripts/new-plan.sh o template)"]
+        B3 --> B4["Auto-auditoría del plan (cobertura, criterios verificables, out-of-scope)"]
+        B4 --> B5["Gate Humano: Revisión y confirmación del plan"]
+    end
+
+    subgraph FlowC["Flujo C — Ejecución y Cierre"]
+        subgraph C1["C1: Ejecución de Fase (1 fase = 1 sesión = 1 diff)"]
+            C1_1["Agente ejecuta solo la Fase Fi del plan"] --> C1_2["Validar tests (adversarial RED-GREEN o spec tests)"]
+            C1_2 --> C1_3["Marcar solo criterios demostrables (- [x])"]
+            C1_3 --> C1_4["Emitir reporte de fase (archivos, tests, desvíos)"]
+            C1_4 --> C1_5["Gate Humano: Auditoría del diff antes del merge"]
+        end
+
+        subgraph C2["C2: Cierre de Ciclo"]
+            C2_1["¿Última fase completada?"] --> C2_2["Auditoría diff vs plan (criterios abiertos, out-of-scope)"]
+            C2_2 --> C2_3["Consolidar pendientes en backlog o issues"]
+            C2_3 --> C2_4["Veredicto honesto de cierre"]
+        end
+    end
+
+    A5 -.->|"Cuando surge una tarea de varias sesiones"| B1
+    B5 -->|"Plan aprobado"| C1_1
+    C1_5 -->|"Fase auditada"| CheckMore{"¿Quedan fases?"}
+    CheckMore -->|"Sí (siguiente sesión)"| C1_1
+    CheckMore -->|"No"| C2_1
+```
+
 ## 2. Alcance honesto — leer antes de instalar
 
 Esto es un **contrato de prosa**: un archivo que el agente lee y, con
@@ -24,9 +64,7 @@ literalmente lo mismo que ya hacía cualquier desarrollador disciplinado
 antes de que existieran agentes. Si algún proyecto del equipo necesita
 memoria transaccional real (estado que sobrevive un crash, aprobación
 enforced en código, múltiples agentes coordinando sobre el mismo estado),
-esa herramienta es 
-*[Context Guard](https://github.com/fdomerlo/context-guard)*
-— ver sección 9.
+eso requiere una herramienta con enforcement en código — ver sección 9.
 
 Esto incluye los checkboxes de los planes: **marcar un criterio como
 cumplido es un acto cooperativo del mismo agente que hizo el trabajo.**
@@ -43,25 +81,24 @@ agente lo respete.
 
 ### 3.1 Claude Code CLI
 
+Podés clonar o copiar la skill en `.claude/skills/`:
+
 ```bash
 mkdir -p .claude/skills
-unzip disciplined-scaffold.zip -d .claude/skills/
+git clone https://github.com/fdomerlo/disciplined-scaffold .claude/skills/disciplined-scaffold
+# o si tenés el zip: unzip disciplined-scaffold.zip -d .claude/skills/
 ```
 
-Si se instaló a nivel de proyecto. Se descubre sola al abrir Claude 
-Code en el repo. Invocación manual disponible con
-`/disciplined-scaffold` si querés forzarla sin depender de que el agente
-la considere relevante por su cuenta.
+Se descubre sola al abrir Claude Code en el repo. Invocación manual disponible con
+`/disciplined-scaffold` para forzar su carga.
 
-### 3.2 Antigravity CLI y OpenCode
+### 3.2 Antigravity CLI e IDE
 
-Misma carpeta sirve: Antigravity CLI lee skills de workspace en
-`.agents/skills/`. Si se prefiere consistencia entre hosts, copiá el mismo
-contenido ahí también:
+Antigravity lee skills de workspace en `.agents/skills/` (o globalmente en tu configuración):
 
 ```bash
 mkdir -p .agents/skills
-cp -r .claude/skills/disciplined-scaffold .agents/skills/
+git clone https://github.com/fdomerlo/disciplined-scaffold .agents/skills/disciplined-scaffold
 ```
 
 #### 3.2.1 OpenCode — requiere un paso extra
@@ -90,10 +127,9 @@ La skill escribe el contrato **una sola vez**, en `AGENTS.md` en la raíz
 del repo. Ese es el formato que leen de forma nativa OpenCode,
 Antigravity, Codex y Cursor.
 
-Claude Code **no lee `AGENTS.md`** (sigue sin soportarlo a julio de 2026,
-pese a un pedido muy votado en su repositorio). La solución, que es la que
-la propia documentación de Anthropic recomienda, es un `CLAUDE.md` en la
-raíz con una sola línea:
+Claude Code utiliza `CLAUDE.md` como punto de entrada de memoria y reglas.
+Para no duplicar el contrato y mantener una única fuente de verdad, la
+documentación oficial recomienda importar `AGENTS.md` con una sola línea:
 
 ```
 @AGENTS.md
@@ -113,6 +149,23 @@ consolidarlo en `AGENTS.md` y dejar el import.
 
 Cuándo: repo nuevo, o uno existente sin convenciones claras para agentes.
 
+### 5.1 Ejecución automatizada vía script CLI (Recomendado)
+
+Si tenés la skill clonada o disponible localmente, podés ejecutar directamente:
+
+```bash
+bash scripts/init.sh -t "pytest" --with-hook
+```
+
+Opciones principales:
+- `-t, --test-cmd`: Comando de tests (`pytest`, `npm test`, `cargo test`, etc.).
+- `-p, --project-name`: Nombre del proyecto (por defecto: nombre del directorio).
+- `-d, --target-dir`: Directorio destino (por defecto: `.`).
+- `--with-hook`: Instala automáticamente `.git/hooks/commit-msg`.
+- `-f, --force`: Sobrescribe si ya existen los archivos de contrato.
+
+### 5.2 Ejecución conversacional con el agente
+
 **Ejemplo de interacción real:**
 
 > **Humano:** "Arrancamos un proyecto nuevo en Python con FastAPI, quiero
@@ -124,13 +177,11 @@ Cuándo: repo nuevo, o uno existente sin convenciones claras para agentes.
 >
 > **Humano:** "pytest, y sí al hook."
 >
-> **Agente:** escribe `AGENTS.md` con el contrato completo (commits
-> convencionales, `pytest` como test command, la cláusula de "plan mode"),
-> escribe `CLAUDE.md` con el import de una línea, instala
-> `.git/hooks/commit-msg`, y reporta qué escribió.
+> **Agente:** ejecuta `scripts/init.sh` (o escribe los archivos siguiendo el
+> template) y reporta qué escribió.
 
-Resultado: dos archivos y un hook, listos para que cualquier persona o
-agente que trabaje en ese repo desde ahora siga las mismas reglas.
+Resultado: dos archivos (`AGENTS.md` y `CLAUDE.md`) y un hook en `.git/hooks/commit-msg`,
+listos para que cualquier persona o agente que trabaje en ese repo siga las mismas reglas.
 
 ## 6. Flujo B — Ciclo de plan por fases
 
@@ -152,14 +203,14 @@ es más disciplinado que la ceremonia de un plan innecesario.
 >
 > **Humano:** "De acuerdo, afuera."
 >
-> **Agente:** crea `PLAN-1.md` en la raíz del repo, con el objetivo en una
-> oración, evidencia de por qué, y fases concretas (F1: capa de emisión y
-> validación de tokens; F2: migración de los endpoints; F3: deprecar el
-> sistema viejo), cada una con spec, tests, y criterios de aceptación
-> **como checkboxes**. Incluye "Out of scope" explícito con los refresh
-> tokens. Antes de entregarlo hace una auto-auditoría y te la reporta en
-> dos líneas: *"revisé el plan: F2 tenía un criterio no verificable, lo
-> reescribí."*
+> **Agente:** crea `PLAN-1.md` (usando `scripts/new-plan.sh "Migración JWT"` o desde
+> la plantilla), con el objetivo en una oración, evidencia de por qué, y fases
+> concretas (F1: capa de emisión y validación de tokens; F2: migración de los
+> endpoints; F3: deprecar el sistema viejo), cada una con spec, tests
+> (distinguiendo fixes de features), y criterios de aceptación **como checkboxes**.
+> Incluye "Out of scope" explícito con los refresh tokens. Antes de entregarlo
+> hace una auto-auditoría y te la reporta en dos líneas: *"revisé el plan: F2
+> tenía un criterio no verificable, lo reescribí."*
 >
 > **Humano:** *revisa el plan, ajusta lo que haga falta, y confirma*.
 >
@@ -207,13 +258,21 @@ lo decide el equipo.
 ## 8. El git hook de commits convencionales
 
 Instalado en `.git/hooks/commit-msg`. Rechaza cualquier primera línea de
-commit que no siga el patrón `tipo(scope): descripción`, con tipos
-`feat, fix, docs, refactor, test, chore, release`. Ejemplos:
+commit que no siga el formato estándar de Conventional Commits (`tipo(scope): descripción`
+o `tipo: descripción`), permitiendo los tipos:
+`feat, fix, docs, style, refactor, perf, test, build, ci, chore, revert, release`.
+
+Además, detecta y permite automáticamente operaciones nativas de Git:
+`Merge...`, `Revert...`, `revert:...`, `fixup!...`, `squash!...`, comentarios (`#`)
+y commits vacíos.
+
+Ejemplos:
 
 | Mensaje | Resultado |
 |---|---|
 | `feat(auth): add JWT validation` | ✅ pasa |
-| `fix: correct token expiry check` | ✅ pasa |
+| `perf(db): optimize user query` | ✅ pasa |
+| `Merge branch 'main' into dev` | ✅ pasa (operación nativa de git) |
 | `Update auth.py` | ❌ rechazado |
 
 Bypass para una emergencia real: `git commit --no-verify`. Cada persona
@@ -221,34 +280,32 @@ del equipo debería saber que existe — un hook que nadie sabe esquivar en
 un apuro termina desinstalado en vez de respetado.
 
 **Antes de instalar el hook en un repo del equipo, alguien debería leer
-`scripts/commit-msg-hook.sh` una vez** — es corto (20 líneas) y no hace
+`scripts/commit-msg-hook.sh` una vez** — es corto (25 líneas) y no hace
 nada más que lo descripto acá, pero cualquier script que se instala como
 git hook merece esa revisión, sin excepciones, aunque lo hayamos escrito
 nosotros mismos.
 
-## 9. Relación con context-guard — cuándo usar cada una
+## 9. Relación con herramientas transaccionales (`context-guard`) — cuándo usar cada una
 
-`disciplined-scaffold` y `context-guard` son herramientas que atacan 
-distintas etapas del desarrollo de softwarera:
+`disciplined-scaffold` y herramientas transaccionales como `context-guard`
+abordan distintas etapas y necesidades del desarrollo asistido por agentes:
 
-- **Solo disciplina de commits + ciclos planificados**, sin necesidad de
-  que el estado sobreviva un crash entre sesiones → `disciplined-scaffold`
-  alcanza, y es más liviano.
-- **Memoria transaccional real** — estado que se recupera solo tras un
-  crash, aprobación humana enforced en código (no solo en texto), conteo
-  determinista de tareas que el agente no puede falsear, varios agentes
-  coordinando sobre el mismo trabajo sin pisarse → hace falta
-  `context-guard` (`uv tool install context-guard-cli`).
+- **Disciplina de commits + ciclos planificados en texto**: sin necesidad de
+  que el estado sobreviva a nivel de base de datos o daemon entre sesiones →
+  `disciplined-scaffold` alcanza, es transparente y no añade dependencias.
+- **Memoria transaccional con enforcement en código**: estado que se
+  recupera solo tras un crash, aprobación humana obligatoria en código
+  (no solo en texto), conteo determinista de tareas que el agente no puede
+  falsear o coordinación multi-agente → requiere un motor transaccional
+  dedicado como `context-guard`.
 
-**Camino de ascenso:** un `PLAN-N.md` generado por esta skill es el
-formato de entrada que `context-guard` sabe leer. Si a mitad de un ciclo
-el trabajo resulta más cosotso de lo previsto, se puede subir de categoría
-sin reescribir el plan a mano.
+**Camino de ascenso:** un `PLAN-N.md` generado por esta skill está
+estructurado de modo que herramientas de workflow transaccional pueden
+leerlo e importarlo directamente sin tener que reescribir las fases a mano.
 
-No se instalan una dentro de la otra. Un mismo repo puede perfectamente
-tener las dos si el proyecto lo justifica: el contrato de
-`disciplined-scaffold` para el día a día, y `context-guard` para los
-ciclos de trabajo donde perder una sesión sería crítico.
+No son excluyentes: un mismo repositorio puede utilizar el contrato ligero de
+`disciplined-scaffold` para el día a día y recurrir a herramientas más
+pesadas en migraciones o tareas críticas.
 
 ## 10. Troubleshooting
 
@@ -266,8 +323,7 @@ conocida de Claude Code (sección 4).
 **"El agente marcó un criterio que no está cumplido."** Es el modo de
 falla conocido de los checkboxes (sección 2): son cooperativos. Corregilo
 en el plan, y si pasa seguido con un modelo en particular, considerá
-`context-guard` para ese proyecto — su conteo de tareas es determinista y
-no depende del criterio del agente.
+incorporar un harness con validación determinista de tareas para ese proyecto.
 
 **"El hook rechaza un mensaje que me parece válido."**
 Revisá que tenga el formato `tipo(scope): descripción` — el scope entre
@@ -309,11 +365,11 @@ como código, no como convención verbal:
 | Acción | Comando / paso |
 |---|---|
 | Instalar en un repo | `unzip disciplined-scaffold.zip -d .claude/skills/`, commitear |
-| Arrancar el contrato en un repo nuevo | Pedile al agente que bootstrapee el repo (Flujo A) |
-| Empezar un trabajo grande | Pedile al agente un plan de fases (Flujo B) |
+| Arrancar el contrato en un repo nuevo | `bash <skill>/scripts/init.sh -t "<CMD>" --with-hook` o pedirlo al agente (Flujo A) |
+| Empezar un trabajo grande | `bash <skill>/scripts/new-plan.sh "<TÍTULO>"` o pedir un plan al agente (Flujo B) |
 | Ejecutar una fase | `"Ejecutá la Fase F{N} según PLAN-{N}.md"` |
 | Cerrar una fase | `"Terminé F{N}"` → marca checkboxes y reporta (Flujo C) |
 | Ver qué falta al final del ciclo | `"¿Qué quedó pendiente?"` (Flujo C) |
 | Forzar la skill en Claude Code | `/disciplined-scaffold` |
 | Bypass del hook en una emergencia | `git commit --no-verify` |
-| ¿Necesito memoria transaccional real? | Ver sección 9 → `context-guard` |
+| ¿Necesito memoria transaccional real? | Ver sección 9 (motores transaccionales) |

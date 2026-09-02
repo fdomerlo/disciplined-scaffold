@@ -28,11 +28,10 @@ phases, not just their content. In practice it is almost always one of:
   convention, a downstream consumer, a deadline that forces sequencing?
 
 Ask each with **your own recommendation and its reasoning attached**, not
-as an open question — the user should be able to answer "sí" and move on:
+as an open question — the user should be able to answer "yes" / "sí" and move on:
 
-> "Recomiendo un change por fase, porque conserva el gate humano entre
-> fases. La alternativa (uno solo para todo el plan) es más liviana pero
-> pierde ese control intermedio. ¿Vamos con lo primero?"
+- **EN**: `"I recommend one change per phase because it preserves human audit checkpoints between phases. The alternative (a single diff for the whole plan) is lighter but forfeits intermediate control. Shall we go with the first option?"`
+- **ES**: `"Recomiendo un change por fase, porque conserva el gate humano entre fases. La alternativa (uno solo para todo el plan) es más liviana pero pierde ese control intermedio. ¿Vamos con lo primero?"`
 
 If a gap is high-impact and you cannot recommend an answer because the
 information genuinely lives only with the user, say exactly that, and
@@ -42,7 +41,7 @@ as it is flagged as a STOP, never as a silent assumption.
 
 ## Step 2 — Fill the template
 
-From `assets/PLAN.md.template`:
+Read the template from the skill's directory (`<skill-dir>/assets/PLAN.md.template`), or run `scripts/new-plan.sh "<TITLE>"`:
 
 - **Objective**, one sentence. If you can't compress it to one sentence,
   the scope isn't decided yet — go back to the user before writing phases.
@@ -50,9 +49,10 @@ From `assets/PLAN.md.template`:
   what's wrong, how you know (a failing command, a bug report, a
   reproduction), not a guess.
 - **Phases (F1, F2, ...)**, each with: what changes, the concrete spec,
-  what tests prove it (write the adversarial test *before* the fix and
-  confirm it fails against current code — RED before GREEN, literally
-  shown, not assumed), and acceptance criteria **as checkboxes**
+  what tests prove it (for bug fixes/regressions: demonstrate RED before
+  GREEN by showing the adversarial test fail on current code; for new
+  features/refactoring: verify baseline suite is green, add specification
+  tests, and verify full green), and acceptance criteria **as checkboxes**
   (`- [ ] ...`), because they get ticked as they are demonstrated (Flow C).
 - **Out of scope**, explicit. Anything tempting-but-tangential goes here,
   not into a phase "while we're at it." This section prevents more scope
@@ -84,19 +84,17 @@ that's a `## DECISIÓN ABIERTA` block, same as Step 1.
 
 ## Step 4 — Hand over, do not execute
 
-Write `PLAN-N.md` to the repo root. **Do not start executing a phase in
+Write `PLAN-N.md` to the repo root (or inside a dedicated `plans/` directory
+if the project maintains multiple cycles). **Do not start executing a phase in
 the same turn the plan is created** — the human reviews the plan itself
 first. Never overwrite an existing `PLAN-N.md`: each cycle gets its own
-file; old ones are history, not clutter, and stay in the repo.
+file; completed ones stay in the repo as history (or can be moved to
+`plans/archive/` at cycle close).
 
 Give the user the session-start prompt to reuse for each phase:
 
-> "Ejecutá la Fase F{N} según PLAN-{N}.md. Si el plan es ambiguo o creés
-> que está mal: PARÁ y preguntá. Al terminar: reportá archivos cambiados,
-> tests agregados, cualquier desviación del plan, y preguntas abiertas —
-> después detenete, yo audito el diff."
-
-(Translate to the chat language in use, keep the content identical.)
+- **EN**: `"Execute Phase F{N} according to PLAN-{N}.md. If the plan is ambiguous or you believe it is wrong: STOP and ask. On completion: report modified files, added tests, deviations with justification, and open questions — then halt for diff audit."`
+- **ES**: `"Ejecutá la Fase F{N} según PLAN-{N}.md. Si el plan es ambiguo o creés que está mal: PARÁ y preguntá. Al terminar: reportá archivos cambiados, tests agregados, cualquier desviación justificada, y preguntas abiertas — después detenete, yo audito el diff."`
 
 ## The non-negotiable rules (put these in the plan or the AGENTS.md contract,
 ## not just in this reference — the executor needs to see them, not you)
@@ -122,5 +120,5 @@ No file here is transactional. If the session dies mid-phase, there is no
 `git log` and `git status`, and tells the next session which phase is
 actually in progress. Ticked checkboxes help, but they are written by an
 agent that could have ticked them wrong; they are a convenience, not a
-guarantee. That is exactly the gap `context-guard` closes if a project
-ever needs code-enforced state instead — see "Upgrade path" in SKILL.md.
+guarantee. If a project ever needs code-enforced, crash-resilient state
+instead — see "Upgrade path" in SKILL.md.

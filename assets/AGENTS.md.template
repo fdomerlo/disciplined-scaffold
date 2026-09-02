@@ -35,7 +35,7 @@ cycle. This changes the rules:
 
 - All acceptance criteria in the plan for this phase: met and demonstrated,
   not asserted.
-- Adversarial tests for every fix in the phase: present and green.
+- Adversarial tests for every fix in the phase (and specification tests for new features): present and green.
 - The full existing test suite: green.
 - No scope creep — anything tempting-but-tangential goes in the plan's
   "out of scope" section for a future cycle, not into this diff.

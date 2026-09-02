@@ -34,8 +34,8 @@ to leave it open and raise it.
 **Be honest about what this is.** Ticking a checkbox is a cooperative act
 with nothing verifying it — the same agent that did the work marks its own
 homework. It makes state visible; it does not make it true. If the user
-needs completion that cannot be faked, that is `context-guard`'s
-deterministic task parser, not this.
+needs tamper-proof completion that cannot be faked, that requires an
+external deterministic task engine or transactional harness, not a prose contract.
 
 ### Then write the phase report
 
