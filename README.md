@@ -79,32 +79,57 @@ agente lo respete.
 
 ## 3. Instalación
 
-### 3.1 Claude Code CLI
+Podés instalar la skill de dos formas: **Globalmente** (para que esté disponible en cualquier proyecto que abras en tu máquina) o **Por Repositorio** (para versionarla y compartirla con tu equipo vía Git).
 
-Podés clonar o copiar la skill en `.claude/skills/`:
+### 3.1 Opción A: Instalación Global de Usuario (Recomendada)
+
+Podés usar el instalador automatizado para enlazar la skill a todas las herramientas en un solo comando:
 
 ```bash
-mkdir -p .claude/skills
-git clone https://github.com/fdomerlo/disciplined-scaffold .claude/skills/disciplined-scaffold
-# o si tenés el zip: unzip disciplined-scaffold.zip -d .claude/skills/
+./scripts/install.sh
 ```
 
-Se descubre sola al abrir Claude Code en el repo. Invocación manual disponible con
-`/disciplined-scaffold` para forzar su carga.
+Esto detecta y crea los enlaces simbólicos automáticamente (limpiando directorios previos sin anidaciones) en:
+- **Antigravity (Desktop, IDE y CLI)**: `~/.gemini/config/skills/disciplined-scaffold`
+- **Claude Code CLI**: `~/.claude/skills/disciplined-scaffold`
+- **OpenCode / Agentes genéricos**: `~/.agents/skills/disciplined-scaffold`
 
-### 3.2 Antigravity CLI e IDE
+> [!TIP]
+> **Equivalente manual sin instalador:**
+> Si preferís configurar los symlinks a mano desde tu terminal:
+> ```bash
+> mkdir -p ~/.agents/skills ~/.gemini/config/skills ~/.claude/skills
+> rm -rf ~/.agents/skills/disciplined-scaffold ~/.gemini/config/skills/disciplined-scaffold ~/.claude/skills/disciplined-scaffold
+> ln -s "$(pwd)" ~/.agents/skills/disciplined-scaffold
+> ln -s "$(pwd)" ~/.gemini/config/skills/disciplined-scaffold
+> ln -s "$(pwd)" ~/.claude/skills/disciplined-scaffold
+> ```
+> Cualquier `git pull` o actualización a este repositorio impactará de inmediato en todas las herramientas.
 
-Antigravity lee skills de workspace en `.agents/skills/` (o globalmente en tu configuración):
+---
+
+### 3.2 Opción B: Instalación por Repositorio (Para equipos)
+
+Si querés versionar la skill dentro de un proyecto específico para que todo el equipo la use desde el primer día:
+
+#### Para Antigravity / Ecosistema `.agents`
+> [!IMPORTANT]
+> **Atención a los plurales:** Antigravity Desktop y CLI buscan estrictamente `.agents/skills/<nombre-skill>/` (ambas carpetas en **plural**). Si se usa `.agent/` o `.skill/` en singular, el escáner de Desktop la ignorará.
 
 ```bash
 mkdir -p .agents/skills
 git clone https://github.com/fdomerlo/disciplined-scaffold .agents/skills/disciplined-scaffold
 ```
 
-#### 3.2.1 OpenCode — requiere un paso extra
+#### Para Claude Code CLI
+```bash
+mkdir -p .claude/skills
+git clone https://github.com/fdomerlo/disciplined-scaffold .claude/skills/disciplined-scaffold
+```
+Invocación manual disponible en Claude Code con `/disciplined-scaffold`.
 
-OpenCode no carga skills de forma nativa. Hace falta un command que
-apunte al contenido en vez de duplicarlo:
+#### Para OpenCode
+OpenCode no carga skills automáticamente. Crea un comando que apunte al contenido:
 
 `.opencode/commands/scaffold.md`:
 ```markdown
@@ -114,12 +139,8 @@ description: Bootstrap this repo or start a plan cycle using disciplined-scaffol
 Read `.agents/skills/disciplined-scaffold/SKILL.md` and follow it for: $ARGUMENTS
 ```
 
-### 3.3 Claude Chat (para uso individual, no de equipo)
-
-Cada persona puede además guardarla en su cuenta personal de Claude vía botón 
-*Save skill* al recibir el archivo (reemplazar extensión `.zip` con `.skill`)
-Útil para planificar desde el chat antes de tener un repo abierto. Esto es 
-individual y complementa, no sustituye, la instalación en el repo.
+#### Para Claude Chat (claude.ai)
+Cada persona puede además guardarla en su cuenta personal de Claude vía botón *Save skill* al recibir el archivo (reemplazar extensión `.zip` con `.skill`). Útil para planificar desde el chat antes de tener un repo abierto.
 
 ## 4. Los archivos de contrato: `AGENTS.md` + `CLAUDE.md`
 
@@ -382,7 +403,8 @@ como código, no como convención verbal:
 
 | Acción | Comando / paso |
 |---|---|
-| Instalar en un repo | `unzip disciplined-scaffold.zip -d .claude/skills/`, commitear |
+| Instalar globalmente (recomendado) | `./scripts/install.sh` (configura Antigravity, Claude Code y OpenCode) |
+| Instalar en un repo específico | `./scripts/install.sh -p <ruta-proyecto>` o git clone (Sección 3.2) |
 | Arrancar el contrato en un repo nuevo | `bash <skill>/scripts/init.sh -t "<CMD>" --with-hook` o pedirlo al agente (Flujo A) |
 | Empezar un trabajo grande | `bash <skill>/scripts/new-plan.sh "<TÍTULO>"` o pedir un plan al agente (Flujo B) |
 | Ejecutar una fase | `"Ejecutá la Fase F{N} según PLAN-{N}.md"` |

@@ -52,6 +52,7 @@ act — same principle the contract itself enforces on the executor.
 
 ## Files this skill writes and tools included
 
+- `scripts/install.sh` — installer to link or copy this skill globally across Antigravity, Claude Code, and OpenCode, or into a specific project.
 - `scripts/init.sh` — automated CLI runner that bootstraps `AGENTS.md`, `CLAUDE.md`, and the git hook in one deterministic step.
 - `scripts/new-plan.sh` — helper script that scaffolds the next unused `PLAN-N.md` (or `plans/PLAN-N.md`) with title and phase template.
 - `AGENTS.md` at repo root (bootstrap) — from `assets/AGENTS.md.template`.
