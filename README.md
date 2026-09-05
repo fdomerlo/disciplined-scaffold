@@ -250,6 +250,15 @@ el sistema. Si hay una decisión que solo el humano puede tomar, el plan
 puede entregarse igual, pero con esa decisión marcada como bloque
 `## DECISIÓN ABIERTA` que el ejecutor tiene prohibido pasar de largo.
 
+### 6.1 Trazabilidad formal de criterios (`CRIT-XX`)
+
+Cada fase de un plan define entre 2 y 7 criterios de aceptación atómicos identificados de forma secuencial (`CRIT-01`, `CRIT-02`, etc.):
+
+- **Qué es:** Vinculación 1:1 entre la especificación en `PLAN-N.md` y la suite de pruebas del proyecto. Cada criterio automatizado debe tener al menos un test unitario, de integración o e2e cuyo nombre o descripción contenga obligatoriamente dicho identificador (ej: `test('CRIT-01: validate JWT issuance')` o `def test_crit_01_valid_token()`).
+- **Por qué se usa:** Elimina el sesgo de confirmación del agente. En desarrollo con LLMs, el fallo más común es asumir complacientemente que un criterio está resuelto y marcar el checkbox por inercia. Con esta regla, el agente tiene **estrictamente prohibido** marcar `- [x]` si no ejecutó un test con ese ID exacto y comprobó que pasó en verde en el estado actual del código.
+- **Criterios manuales:** Requerimientos que solo un humano puede validar (interfaces visuales, flujos manuales, deploys) también llevan identificador explícito (`CRIT-03: (manual) ...`), pero el agente los deja desmarcados (`- [ ]`) y los reporta como pendientes de revisión humana.
+- **Costo cero:** No requiere parsers de AST, linters externos ni dependencias adicionales en el repositorio; se apoya enteramente en la semántica estándar de cualquier test runner existente (`pytest`, `vitest`, `jest`, `cargo test`, `go test`).
+
 ## 7. Flujo C — Cierre de fase y cierre de ciclo
 
 Novedad de la v2. Son dos momentos distintos:
@@ -257,13 +266,13 @@ Novedad de la v2. Son dos momentos distintos:
 **Al terminar una fase**, antes de que nadie empiece la siguiente, el
 agente:
 
-1. Marca `- [x]` **solo** los criterios de aceptación que puede demostrar
-   en ese momento — un test que corrió recién, un comando cuya salida
-   tiene a la vista. Lo que requiere verificación humana (una sesión real
-   en un host, algo visual) queda sin marcar y lo dice explícitamente:
-   *"el criterio 3 de F2 necesita tu chequeo en OpenCode real, lo dejo sin
-   marcar."*
-2. Escribe el reporte: tabla de archivos cambiados, tests agregados **con
+1. Marca `- [x]` **solo** los criterios de aceptación automatizados que cuenten
+   con un test pasando en verde cuyo nombre contenga el identificador `CRIT-XX`.
+   Lo que requiere verificación humana (criterios marcados como `(manual)`, algo
+   visual o en host remoto) queda sin marcar (`- [ ]`) y lo dice explícitamente:
+   *"el criterio CRIT-03: (manual) necesita tu chequeo visual, lo dejo sin marcar."*
+2. Escribe el reporte: mapeo de cada `CRIT-XX` marcado contra su test demostrable
+   (archivo y función de prueba), tabla de archivos cambiados, tests agregados **con
    qué ataque o regresión protege cada uno**, desviaciones del plan con su
    justificación, hallazgos que van a "Out of scope", y preguntas abiertas.
 3. **Refresca el checkpoint (`SESSION.md`)**: antes de parar, reescribe

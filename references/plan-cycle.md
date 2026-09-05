@@ -52,8 +52,18 @@ Read the template from the skill's directory (`<skill-dir>/assets/PLAN.md.templa
   what tests prove it (for bug fixes/regressions: demonstrate RED before
   GREEN by showing the adversarial test fail on current code; for new
   features/refactoring: verify baseline suite is green, add specification
-  tests, and verify full green), and acceptance criteria **as checkboxes**
-  (`- [ ] ...`), because they get ticked as they are demonstrated (Flow C).
+  tests, and verify full green), and acceptance criteria **as numbered checkboxes**
+  (`- [ ] CRIT-01: ...`).
+  - **Granularity & traceability:** Each phase must define between 2 and 7
+    atomic criteria, numbered sequentially (`CRIT-01`, `CRIT-02`, etc.).
+    The `CRIT-XX` convention is the formal bridge between the specification
+    (`PLAN-N.md`) and the project's test suite: any automated test asserting
+    that requirement must include the exact identifier in its name (e.g.
+    `test('CRIT-01: ...')` or `def test_crit_01_...()`).
+  - **Manual criteria:** If a requirement cannot be checked automatically
+    (visual layout, live environment verification), label it explicitly with
+    an ID: `- [ ] CRIT-03: (manual) ...`. These are left unticked by the agent
+    and handed to the human reviewer at phase close.
 - **Out of scope**, explicit. Anything tempting-but-tangential goes here,
   not into a phase "while we're at it." This section prevents more scope
   creep than any other single habit in this skill.
@@ -63,8 +73,10 @@ Read the template from the skill's directory (`<skill-dir>/assets/PLAN.md.templa
 Read-only pass over what you just wrote. Do not hand a plan to the user
 without running it:
 
-1. **Coverage.** Does every acceptance criterion have a test or a concrete
-   demonstration behind it? A criterion nothing proves is decoration.
+1. **Coverage & Traceability.** Does every automated acceptance criterion
+   have a clear test target matching its `CRIT-XX` identifier? Does every
+   manual criterion carry an explicit `(manual)` tag? A criterion nothing
+   proves is decoration.
 2. **Checkability.** Any criterion that reads like a vibe ("should work
    well", "is cleaner") is a defect — rewrite it as something a command
    can answer, or drop it.

@@ -7,7 +7,8 @@ description: Bootstraps repositories with an AI executor contract (AGENTS.md, co
 
 Packages a pattern for working with AI coding agents across multiple
 sessions without losing discipline: conventional commits, one phase per
-session, human review of every diff before merge, and an agent that stops
+session, human review of every diff before merge, spec-driven development (SDD)
+with strict `CRIT-XX` criteria-to-test traceability, and an agent that stops
 to ask instead of guessing when a plan is ambiguous.
 
 **Honest scope, read this first.** This is a *prose contract* — conventions
@@ -69,6 +70,8 @@ act — same principle the contract itself enforces on the executor.
 - `PLAN-N.md` at repo root (or `plans/`) — from `assets/PLAN.md.template`.
   N = next unused number; follow the repo's existing convention if there
   is one (e.g. `PLAN-2.4` → `PLAN-2.5`), otherwise plain integers from 1.
+  Phases define atomic acceptance criteria labeled `CRIT-01`, `CRIT-02`,
+  which must be linked 1:1 to automated test names for formal SDD traceability.
 - `SESSION.md` at repo root (written at the end of every session, whether
   or not a phase closed) — from `assets/SESSION.md.template`. Read first,
   before anything else, if present at session start. See the "Session

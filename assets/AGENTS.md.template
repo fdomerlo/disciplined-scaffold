@@ -25,11 +25,23 @@ cycle. This changes the rules:
   failure mode this whole contract exists to prevent — do not embody it.
 - Findings referenced in the plan (a bug, a bypass, a failing case) become
   a failing test *before* the fix. Show the RED run, then fix, then GREEN.
-- At phase end: tick (`- [x]`) only the acceptance criteria you can
-  demonstrate right now — leave anything only a human can verify unticked
-  and say so. Then report: files changed, tests added (and what each one
-  guards against), any deviation from the plan with justification, and
-  open questions. Then stop — the human audits the diff before merge.
+- **Criteria traceability (`CRIT-XX`)**: every automated criterion in the plan
+  bears a unique sequential identifier (`CRIT-01`, `CRIT-02`, ...). Each automated
+  criterion MUST map to at least one test whose function or block name contains that
+  exact identifier (e.g. `test("CRIT-01: ...")` or `def test_crit_01_...()`).
+- **Strict ticking rule (`- [x]`)**: you are strictly forbidden from ticking
+  (`- [x]`) an automated criterion if you have not run a test bearing its matching
+  `CRIT-XX` identifier and confirmed that it passes green against the current working tree.
+  Leave anything only a human can verify unticked (e.g. `CRIT-03: (manual) ...`) and explicitly
+  state that it is pending human verification.
+- At phase end, report:
+  1. Criteria demonstration mapping: every ticked `CRIT-XX` mapped to its demonstrating test
+     (file path and test name), and any manual criteria left unticked for human audit.
+  2. Files changed (in a clear summary table).
+  3. Tests added (and what attack, regression, or behavior each one guards against).
+  4. Any deviation from the plan with justification.
+  5. Open questions for the human.
+  Then stop — the human audits the diff before merge.
 
 ### Session checkpoint (`SESSION.md`)
 
@@ -63,8 +75,9 @@ more.
 
 ## Definition of done for any phase
 
-- All acceptance criteria in the plan for this phase: met and demonstrated,
-  not asserted.
+- All acceptance criteria in the plan for this phase: met and demonstrated
+  with passing tests matching each automated `CRIT-XX` (or explicitly flagged as manual
+  and awaiting human review), not merely asserted.
 - Adversarial tests for every fix in the phase (and specification tests for new features): present and green.
 - The full existing test suite: green.
 - No scope creep — anything tempting-but-tangential goes in the plan's

@@ -16,14 +16,18 @@ Go through that phase's acceptance criteria in `PLAN-N.md` and mark
 `- [ ]` → `- [x]` for each one that is **demonstrably** met. The word is
 load-bearing:
 
-- A criterion backed by a test: the test exists and passes *now*, in this
-  working tree — you ran it, you are not remembering that you ran it.
+- A criterion backed by a test: the test exists, its function or test block
+  name contains the matching `CRIT-XX` identifier (e.g. `test('CRIT-01: ...')`
+  or `def test_crit_01_...()`), and it passes *now*, in this working tree — you
+  ran it, you are not remembering that you ran it. Never tick an automated
+  criterion without a matching passing test.
 - A criterion backed by a command's output: you ran the command in this
-  session.
-- A criterion that needs a human to look at something (a live host, an
-  IDE, a rendered page): **leave it unticked** and say so explicitly in
-  the report — "F2 criterion 3 needs your check in a real OpenCode
-  session; left unticked." An agent ticking a box only a human can verify
+  session and observed the output.
+- A criterion that cannot be demonstrated automatically (needs a human to look
+  at something: a live host, an IDE, a rendered UI, manual verification):
+  **leave it unticked** with its ID and state it explicitly in the report — e.g.
+  "CRIT-03: (manual) needs your check in a real OpenCode session; left unticked
+  pending human verification." An agent ticking a box only a human can verify
   is the single worst failure mode of this whole file.
 
 Never tick a box in a phase other than the one that just closed. Never
@@ -43,6 +47,9 @@ Immediately below the ticked criteria, or in chat if the user prefers the
 plan to stay clean — ask once and remember the preference for the cycle:
 
 - Files changed (a table, not prose).
+- Criteria demonstration table: a concise mapping showing each ticked `CRIT-XX`
+  alongside the exact test file and test name that demonstrates it, and any
+  manual `CRIT-XX` explicitly noted as pending human verification.
 - Tests added, each with **what attack or regression it guards against**,
   not just its name.
 - Any deviation from the plan, with the reasoning. A deviation is not a
@@ -60,6 +67,9 @@ in `AGENTS.md`: `Status: phase-closed, awaiting human audit`,
 close — closing a phase does not exempt it.
 
 Then stop. Do not start the next phase — the human audits the diff first.
+The human audit includes verifying that newly added tests carry the `CRIT-XX`
+labels matching the ticked criteria and that no automated criterion was marked
+without test proof.
 
 ---
 
