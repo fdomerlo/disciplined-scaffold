@@ -203,6 +203,9 @@ Opciones principales:
 Resultado: dos archivos (`AGENTS.md` y `CLAUDE.md`) y un hook en `.git/hooks/commit-msg`,
 listos para que cualquier persona o agente que trabaje en ese repo siga las mismas reglas.
 
+> [!NOTE]
+> **Alcance del bootstrap:** El Flujo A se limita exclusivamente a establecer las reglas base del repositorio (`AGENTS.md`, `CLAUDE.md` y opcionalmente el hook). **No crea planes (`PLAN-N.md`) ni checkpoints de sesión (`SESSION.md`)**, ya que en esta instancia aún no hay una fase de trabajo en progreso.
+
 ## 6. Flujo B — Ciclo de plan por fases
 
 Cuándo: el trabajo va a llevar más de una sesión, más de una persona va a
@@ -302,6 +305,9 @@ el mismo agente que hizo el trabajo. Reduce lo que se pierde si una
 sesión muere a mitad de fase; no impide que un agente lo ignore, ni
 reemplaza locks o aprobación enforced en código — ver sección 9 para eso.
 
+> [!NOTE]
+> **¿Cuándo nace `SESSION.md`?** Este archivo no se inicializa de antemano durante el bootstrap ni al crear un plan. Se crea por primera vez al finalizar la primera sesión de trabajo real sobre una fase de un plan. Su presencia es el indicador inequívoco de que hay trabajo en curso para reanudar.
+
 ## 8. El git hook de commits convencionales
 
 Instalado en `.git/hooks/commit-msg`. Rechaza cualquier primera línea de
@@ -387,6 +393,15 @@ personales.
 **"¿Puedo usar esto sin instalar el hook?"** Sí, es opcional en ambos
 flujos. El contrato en `AGENTS.md` sigue pidiendo commits convencionales;
 sin el hook, esa regla queda como las demás — cooperativa, no forzada.
+
+**"¿El agente ejecuta un `init` automático cuando descubre la skill?"**
+No. La skill nunca ejecuta acciones destructivas ni inicializaciones por su cuenta. Tiene 3 puntos de entrada claros (A: bootstrap, B: planificar, C: cerrar/continuar fase). Solo realiza el bootstrap si se lo pedís explícitamente o si el contexto indica de forma directa que se están acordando las convenciones del repositorio.
+
+**"¿Es necesario ejecutar `scripts/init.sh` como un comando de shell?"**
+No es obligatorio. `scripts/init.sh` es solo un atajo determinista para acelerar el bootstrap en un solo paso sin que el LLM tenga que transcribir el template. El agente puede realizar exactamente lo mismo de manera conversacional (`"configurá las convenciones de este repo"`), o bien podés disparar la skill vía comandos de tu editor o CLI (como `/disciplined-scaffold` en Claude Code o un comando `/scaffold init` en OpenCode).
+
+**"¿Por qué `init.sh` o el bootstrap no crean un `SESSION.md` inicial?"**
+Porque en el modelo de esta skill, la sola existencia de `SESSION.md` en la raíz del repo le indica al agente que una sesión anterior quedó interrumpida y debe ser reanudada antes que nada. Si existiera desde el inicio sin un plan activo, confundiría a los agentes haciéndoles buscar commits base y acciones siguientes inexistentes. `SESSION.md` nace al final de la primera sesión de ejecución de una fase.
 
 ## 11. Gobernanza — cómo evoluciona el contrato sin divergir
 
