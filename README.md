@@ -2,7 +2,7 @@
 
 ## 1. Qué es, en pocas palabras
 
-`disciplined-scaffold` es una skill que instala dos cosas en un repo:
+`disciplined-scaffold` es una skill project-local que establece dos cosas en un repo:
 un contrato de convenciones para cualquier agente de IA que trabaje ahí
 (commits convencionales, tests antes de cada commit, nunca dejar la suite
 en rojo), y — cuando el trabajo lo amerita — un ciclo de planificación por
@@ -37,7 +37,8 @@ flowchart TD
             C1_1["Agente ejecuta solo la Fase Fi del plan"] --> C1_2["Validar tests (adversarial RED-GREEN o spec tests)"]
             C1_2 --> C1_3["Marcar solo criterios demostrables (- [x])"]
             C1_3 --> C1_4["Emitir reporte de fase (archivos, tests, desvíos)"]
-            C1_4 --> C1_5["Gate Humano: Auditoría del diff antes del merge"]
+            C1_4 --> C1_4b["Refrescar SESSION.md (checkpoint)"]
+            C1_4b --> C1_5["Gate Humano: Auditoría del diff antes del merge"]
         end
 
         subgraph C2["C2: Cierre de Ciclo"]
@@ -54,7 +55,7 @@ flowchart TD
     CheckMore -->|"No"| C2_1
 ```
 
-## 2. Alcance honesto — leer antes de instalar
+## 2. Alcance honesto — leer antes de adoptar
 
 Esto es un **contrato de prosa**: un archivo que el agente lee y, con
 buena probabilidad, sigue. Un archivo adicional, `SESSION.md` (ver
@@ -82,49 +83,23 @@ La única pieza de esta skill que **sí** está enforced en código,
 es el hook de commits (sección 8). Todo lo demás depende de que el
 agente lo respete.
 
-## 3. Instalación
+## 3. Configuración en el proyecto (Project-local)
 
-Podés instalar la skill de dos formas: **Globalmente** (para que esté disponible en cualquier proyecto que abras en tu máquina) o **Por Repositorio** (para versionarla y compartirla con tu equipo vía Git).
+Esta skill está diseñada para ser **project-local**: vive directamente dentro del repositorio del proyecto, se versiona junto con el código y queda disponible de inmediato para cualquier persona del equipo o cualquier agente que abra el repositorio, sin necesidad de instalaciones globales ni dependencias externas en la máquina del desarrollador.
 
-### 3.1 Opción A: Instalación Global de Usuario (Recomendada)
+### 3.1 Cómo agregar la skill a tu repositorio
 
-Podés usar el instalador automatizado para enlazar la skill a todas las herramientas en un solo comando:
-
-```bash
-./scripts/install.sh
-```
-
-Esto detecta y crea los enlaces simbólicos automáticamente (limpiando directorios previos sin anidaciones) en:
-- **Antigravity (Desktop, IDE y CLI)**: `~/.gemini/config/skills/disciplined-scaffold`
-- **Claude Code CLI**: `~/.claude/skills/disciplined-scaffold`
-- **OpenCode / Agentes genéricos**: `~/.agents/skills/disciplined-scaffold`
-
-> [!TIP]
-> **Equivalente manual sin instalador:**
-> Si preferís configurar los symlinks a mano desde tu terminal:
-> ```bash
-> mkdir -p ~/.agents/skills ~/.gemini/config/skills ~/.claude/skills
-> rm -rf ~/.agents/skills/disciplined-scaffold ~/.gemini/config/skills/disciplined-scaffold ~/.claude/skills/disciplined-scaffold
-> ln -s "$(pwd)" ~/.agents/skills/disciplined-scaffold
-> ln -s "$(pwd)" ~/.gemini/config/skills/disciplined-scaffold
-> ln -s "$(pwd)" ~/.claude/skills/disciplined-scaffold
-> ```
-> Cualquier `git pull` o actualización a este repositorio impactará de inmediato en todas las herramientas.
-
----
-
-### 3.2 Opción B: Instalación por Repositorio (Para equipos)
-
-Si querés versionar la skill dentro de un proyecto específico para que todo el equipo la use desde el primer día:
+Podés incorporarla clonándola, agregándola como submódulo de Git o copiando sus archivos en la carpeta de skills correspondiente a las herramientas de tu equipo:
 
 #### Para Antigravity / Ecosistema `.agents`
 > [!IMPORTANT]
-> **Atención a los plurales:** Antigravity Desktop y CLI buscan estrictamente `.agents/skills/<nombre-skill>/` (ambas carpetas en **plural**). Si se usa `.agent/` o `.skill/` en singular, el escáner de Desktop la ignorará.
+> **Atención a los plurales:** Antigravity Desktop y CLI buscan estrictamente `.agents/skills/<nombre-skill>/` (ambas carpetas en **plural**). Si se usa `.agent/` o `.skill/` en singular, el escáner la ignorará.
 
 ```bash
 mkdir -p .agents/skills
 git clone https://github.com/fdomerlo/disciplined-scaffold .agents/skills/disciplined-scaffold
 ```
+*(O como submódulo para fijar versión: `git submodule add https://github.com/fdomerlo/disciplined-scaffold .agents/skills/disciplined-scaffold`)*.
 
 #### Para Claude Code CLI
 ```bash
@@ -134,7 +109,7 @@ git clone https://github.com/fdomerlo/disciplined-scaffold .claude/skills/discip
 Invocación manual disponible en Claude Code con `/disciplined-scaffold`.
 
 #### Para OpenCode
-OpenCode no carga skills automáticamente. Crea un comando que apunte al contenido:
+OpenCode no carga skills automáticamente por defecto. Para que use la skill project-local, creá un comando en tu repo que apunte al archivo local:
 
 `.opencode/commands/scaffold.md`:
 ```markdown
@@ -145,7 +120,7 @@ Read `.agents/skills/disciplined-scaffold/SKILL.md` and follow it for: $ARGUMENT
 ```
 
 #### Para Claude Chat (claude.ai)
-Cada persona puede además guardarla en su cuenta personal de Claude vía botón *Save skill* al recibir el archivo (reemplazar extensión `.zip` con `.skill`). Útil para planificar desde el chat antes de tener un repo abierto.
+Cada persona puede además guardarla en su cuenta personal de Claude vía botón *Save skill* al importar el archivo (o empaquetándolo como `.skill`). Útil para planificar desde el chat antes de tener un repo abierto.
 
 ## 4. Los archivos de contrato: `AGENTS.md` + `CLAUDE.md`
 
@@ -195,11 +170,12 @@ Cuándo: repo nuevo, o uno existente sin convenciones claras para agentes.
 
 ### 5.1 Ejecución automatizada vía script CLI (Recomendado)
 
-Si tenés la skill clonada o disponible localmente, podés ejecutar directamente:
+Si tenés la skill en tu repositorio (por ejemplo en `.agents/skills/disciplined-scaffold`), podés ejecutar directamente:
 
 ```bash
-bash scripts/init.sh -t "pytest" --with-hook
+bash .agents/skills/disciplined-scaffold/scripts/init.sh -t "pytest" --with-hook
 ```
+*(o ajustando la ruta relativa a donde hayas ubicado la skill en el proyecto)*.
 
 Opciones principales:
 - `-t, --test-cmd`: Comando de tests (`pytest`, `npm test`, `cargo test`, etc.).
@@ -287,7 +263,11 @@ agente:
 2. Escribe el reporte: tabla de archivos cambiados, tests agregados **con
    qué ataque o regresión protege cada uno**, desviaciones del plan con su
    justificación, hallazgos que van a "Out of scope", y preguntas abiertas.
-3. Se detiene.
+3. **Refresca el checkpoint (`SESSION.md`)**: antes de parar, reescribe
+   `SESSION.md` con `Status: phase-closed, awaiting human audit`,
+   `Next action` configurada a la acción siguiente tras la aprobación, y
+   `Human review: pending` (ver sección 7.1).
+4. Se detiene.
 
 **Al cerrar el ciclo** (después de la última fase, o cuando alguien
 pregunta "¿qué falta?"), el agente hace una pasada de solo lectura:
@@ -431,12 +411,12 @@ como código, no como convención verbal:
 
 | Acción | Comando / paso |
 |---|---|
-| Instalar globalmente (recomendado) | `./scripts/install.sh` (configura Antigravity, Claude Code y OpenCode) |
-| Instalar en un repo específico | `./scripts/install.sh -p <ruta-proyecto>` o git clone (Sección 3.2) |
+| Agregar al proyecto (project-local) | Clonar o submódulo en `.agents/skills/disciplined-scaffold` (o `.claude/skills/`) |
 | Arrancar el contrato en un repo nuevo | `bash <skill>/scripts/init.sh -t "<CMD>" --with-hook` o pedirlo al agente (Flujo A) |
 | Empezar un trabajo grande | `bash <skill>/scripts/new-plan.sh "<TÍTULO>"` o pedir un plan al agente (Flujo B) |
 | Ejecutar una fase | `"Ejecutá la Fase F{N} según PLAN-{N}.md"` |
-| Cerrar una fase | `"Terminé F{N}"` → marca checkboxes y reporta (Flujo C) |
+| Checkpoint entre sesiones | Se actualiza `SESSION.md` al finalizar cada sesión (Sección 7.1) |
+| Cerrar una fase | `"Terminé F{N}"` → actualiza `SESSION.md`, marca checkboxes y reporta (Flujo C) |
 | Ver qué falta al final del ciclo | `"¿Qué quedó pendiente?"` (Flujo C) |
 | Forzar la skill en Claude Code | `/disciplined-scaffold` |
 | Bypass del hook en una emergencia | `git commit --no-verify` |
