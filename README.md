@@ -1,447 +1,178 @@
 # Disciplined Scaffold
 
-## 1. Qué es, en pocas palabras
+Un arnés de **Desarrollo Guiado por Especificaciones (SDD)** y control de ejecución para agentes de código en terminal (Claude Code, Antigravity, Gemini CLI, Cursor, OpenCode).
 
-`disciplined-scaffold` es una skill project-local que establece dos cosas en un repo:
-un contrato de convenciones para cualquier agente de IA que trabaje ahí
-(commits convencionales, tests antes de cada commit, nunca dejar la suite
-en rojo), y — cuando el trabajo lo amerita — un ciclo de planificación por
-fases (`PLAN-N.md`) donde el agente ejecuta una fase por sesión, marca los
-criterios cumplidos al cerrarla, y el humano audita cada diff antes de
-mergear.
+Cero dependencias. Cero herramientas en segundo plano. Cero bases de datos de estado. Todo el control se ejerce mediante contratos de prosa estructurada, anclaje en Git y verificación automatizada en tests.
 
-No reemplaza buen criterio. Formaliza el que ya tenían las personas del
-equipo que trabajaban bien con agentes, para que todos lo tengan desde el
-primer día en cualquier repo nuevo.
+---
 
-### 1.1 Mapa general de los tres flujos
+## 1. El Problema que Resuelve
 
-```mermaid
-flowchart TD
-    subgraph FlowA["Flujo A — Bootstrap del Repositorio"]
-        A1["Repo nuevo o sin disciplina"] --> A2["Ejecutar scripts/init.sh o interactuar con el agente"]
-        A2 --> A3["Crear AGENTS.md y CLAUDE.md (@AGENTS.md)"]
-        A2 --> A4["Instalar hook .git/hooks/commit-msg"]
-        A3 & A4 --> A5["Repositorio listo con contrato de disciplina"]
-    end
+Cuando un agente de IA programa sin restricciones formales, suele presentar tres fallas críticas:
+1. **Deriva de alcance (*Scope Creep*):** Empieza arreglando un bug y termina refactorizando módulos ajenos sin autorización.
+2. **Sesgo de complacencia:** Tilda tareas como completadas porque "asume" que el código funciona, sin haber probado los casos de borde.
+3. **Amnesia y saturación de contexto:** Tras pausar una sesión o alcanzar el límite de tokens, la siguiente sesión arranca a ciegas, adivinando el estado del repositorio o duplicando trabajo.
 
-    subgraph FlowB["Flujo B — Ciclo de Planificación"]
-        B1["Tarea compleja o multi-sesión"] --> B2["Resolver ambigüedad (máx. 3 preguntas con recomendación)"]
-        B2 --> B3["Crear PLAN-N.md (scripts/new-plan.sh o template)"]
-        B3 --> B4["Auto-auditoría del plan (cobertura, criterios verificables, out-of-scope)"]
-        B4 --> B5["Gate Humano: Revisión y confirmación del plan"]
-    end
+**Disciplined Scaffold** impone una estructura de trabajo rigurosa donde:
+* **El plan es la especificación:** El trabajo se divide en fases atómicas con alcance cerrado.
+* **Los criterios se demuestran con código (`CRIT-XX`):** Ninguna tarea se da por cumplida sin un test en verde que lleve su etiqueta.
+* **La memoria entre sesiones es persistente y quirúrgica (`SESSION.md`):** Se retoma el trabajo en segundos sin releer historiales muertos de chat.
+* **El humano audita el diff:** Cada fase termina con un freno obligatorio antes de tocar la rama principal.
 
-    subgraph FlowC["Flujo C — Ejecución y Cierre"]
-        subgraph C1["C1: Ejecución de Fase (1 fase = 1 sesión = 1 diff)"]
-            C1_1["Agente ejecuta solo la Fase Fi del plan"] --> C1_2["Validar tests (adversarial RED-GREEN o spec tests)"]
-            C1_2 --> C1_3["Marcar solo criterios demostrables (- [x])"]
-            C1_3 --> C1_4["Emitir reporte de fase (archivos, tests, desvíos)"]
-            C1_4 --> C1_4b["Refrescar SESSION.md (checkpoint)"]
-            C1_4b --> C1_5["Gate Humano: Auditoría del diff antes del merge"]
-        end
+---
 
-        subgraph C2["C2: Cierre de Ciclo"]
-            C2_1["¿Última fase completada?"] --> C2_2["Auditoría diff vs plan (criterios abiertos, out-of-scope)"]
-            C2_2 --> C2_3["Consolidar pendientes en backlog o issues"]
-            C2_3 --> C2_4["Veredicto honesto de cierre"]
-        end
-    end
+## 2. Modo de operación
 
-    A5 -.->|"Cuando surge una tarea de varias sesiones"| B1
-    B5 -->|"Plan aprobado"| C1_1
-    C1_5 -->|"Fase auditada"| CheckMore{"¿Quedan fases?"}
-    CheckMore -->|"Sí (siguiente sesión)"| C1_1
-    CheckMore -->|"No"| C2_1
+El sistema desacopla responsabilidades en tres capas complementarias:
+
+
 ```
 
-## 2. Alcance honesto — leer antes de adoptar
+┌─────────────────────────────────────────────────────────────┐
+│                          AGENTS.md                          │
+│        Reglas de conducta, restricciones y protocolo        │
+└──────────────────────────────┬──────────────────────────────┘
+│ gobierna
+▼
+┌─────────────────────────────────────────────────────────────┐
+│                          PLAN-N.md                          │
+│        Especificación inmutable, fases y criterios CRIT     │
+└──────────────────────────────┬──────────────────────────────┘
+│ rastrea
+▼
+┌─────────────────────────────────────────────────────────────┐
+│                         SESSION.md                          │
+│         Cursor de reanudación y anclaje con Git HEAD        │
+└─────────────────────────────────────────────────────────────┘
 
-Esto es un **contrato de prosa**: un archivo que el agente lee y, con
-buena probabilidad, sigue. Un archivo adicional, `SESSION.md` (ver
-sección 7.1), reduce el hueco de las sesiones que mueren a mitad de fase:
-guarda dónde quedó la última sesión y de qué commit partía, para que la
-siguiente no dependa solo de releer `PLAN-N.md` y adivinar. Pero sigue
-sin haber locks, sin aprobación enforced en código, sin coordinación
-multi-agente — es una nota de texto escrita por el mismo agente que hizo
-el trabajo, no un estado que un programa garantice. Eso es aceptable para
-la enorme mayoría del trabajo — es literalmente lo mismo que ya hacía
-cualquier desarrollador disciplinado antes de que existieran agentes. Si
-algún proyecto del equipo necesita memoria transaccional real (estado que
-sobrevive un crash, aprobación enforced en código, múltiples agentes
-coordinando sobre el mismo estado), eso requiere una herramienta con
-enforcement en código — ver sección 9.
-
-Esto incluye los checkboxes de los planes: **marcar un criterio como
-cumplido es un acto cooperativo del mismo agente que hizo el trabajo.**
-Hace visible el estado, no lo hace verdadero. La skill le exige marcar
-solo lo que puede demostrar en el momento, y dejar sin marcar lo que
-requiere verificación humana — pero eso sigue siendo una regla que se
-respeta, no un mecanismo que se impone.
-
-La única pieza de esta skill que **sí** está enforced en código, 
-es el hook de commits (sección 8). Todo lo demás depende de que el
-agente lo respete.
-
-## 3. Configuración en el proyecto (Project-local)
-
-Esta skill está diseñada para ser **project-local**: vive directamente dentro del repositorio del proyecto, se versiona junto con el código y queda disponible de inmediato para cualquier persona del equipo o cualquier agente que abra el repositorio, sin necesidad de instalaciones globales ni dependencias externas en la máquina del desarrollador.
-
-### 3.1 Cómo agregar la skill a tu repositorio
-
-Podés incorporarla clonándola, agregándola como submódulo de Git o copiando sus archivos en la carpeta de skills correspondiente a las herramientas de tu equipo:
-
-#### Para Antigravity / Ecosistema `.agents`
-> [!IMPORTANT]
-> **Atención a los plurales:** Antigravity Desktop y CLI buscan estrictamente `.agents/skills/<nombre-skill>/` (ambas carpetas en **plural**). Si se usa `.agent/` o `.skill/` en singular, el escáner la ignorará.
-
-```bash
-mkdir -p .agents/skills
-git clone https://github.com/fdomerlo/disciplined-scaffold .agents/skills/disciplined-scaffold
 ```
-*(O como submódulo para fijar versión: `git submodule add https://github.com/fdomerlo/disciplined-scaffold .agents/skills/disciplined-scaffold`)*.
 
-#### Para Claude Code CLI
-```bash
-mkdir -p .claude/skills
-git clone https://github.com/fdomerlo/disciplined-scaffold .claude/skills/disciplined-scaffold
-```
-Invocación manual disponible en Claude Code con `/disciplined-scaffold`.
+| Archivo | Rol | Mutabilidad |
+| :--- | :--- | :--- |
+| **`AGENTS.md`** | **Constitución:** Define cómo debe comportarse el agente, qué comandos puede correr y las reglas de detención obligatoria. | Estático |
+| **`PLAN-N.md`** | **Especificación (SDD):** Define qué se construye, qué queda explícitamente fuera de alcance y los criterios de aceptación. | Estable por ciclo |
+| **`SESSION.md`** | **Memoria Táctica:** Guarda el punto exacto de interrupción, el commit base y la siguiente acción inmediata. | Altamente dinámico |
 
-#### Para OpenCode
-OpenCode no carga skills automáticamente por defecto. Para que use la skill project-local, creá un comando en tu repo que apunte al archivo local:
+---
 
-`.opencode/commands/scaffold.md`:
+## 3. Principios Fundamentales
+
+### A. Trazabilidad Contractual (`CRIT-XX`)
+Cada fase de un plan define entre 2 y 7 criterios de aceptación atómicos identificados secuencialmente:
 ```markdown
----
-description: Bootstrap this repo or start a plan cycle using disciplined-scaffold
----
-Read `.agents/skills/disciplined-scaffold/SKILL.md` and follow it for: $ARGUMENTS
-```
-
-#### Para Claude Chat (claude.ai)
-Cada persona puede además guardarla en su cuenta personal de Claude vía botón *Save skill* al importar el archivo (o empaquetándolo como `.skill`). Útil para planificar desde el chat antes de tener un repo abierto.
-
-## 4. Los archivos de contrato: `AGENTS.md` + `CLAUDE.md`
-
-La skill escribe el contrato **una sola vez**, en `AGENTS.md` en la raíz
-del repo. Ese es el formato que leen de forma nativa OpenCode,
-Antigravity, Codex y Cursor.
-
-Claude Code utiliza `CLAUDE.md` como punto de entrada de memoria y reglas.
-Para no duplicar el contrato y mantener una única fuente de verdad, la
-documentación oficial recomienda importar `AGENTS.md` con una sola línea:
+### Acceptance criteria
+- [ ] CRIT-01: El token de refresco expira en 7 días y revoca el anterior.
+- [ ] CRIT-02: Peticiones concurrentes con el mismo token devuelven HTTP 409.
+- [ ] CRIT-03: (manual) Verificar legibilidad del log en consola de auditoría.
 
 ```
-@AGENTS.md
-```
 
-Eso importa el contrato sin duplicarlo. Existe también la variante de
-symlink (`ln -s AGENTS.md CLAUDE.md`), igual de oficial, pero requiere
-modo desarrollador o permisos elevados en Windows — por eso la skill usa
-el import por defecto.
+**Regla de oro:** El agente tiene **estrictamente prohibido** marcar `- [x]` en un criterio automatizado si no existe una prueba unitaria, de integración o e2e cuyo nombre incluya el identificador exacto (`test('CRIT-01: ...')`) y haya pasado exitosamente en la sesión actual.
 
-**Nunca copiar la prosa del contrato en los dos archivos.** Dos copias 
-de un contrato son dos contratos, y van a divergir. Si se encuentra un 
-`CLAUDE.md` con contenido propio en el mismo repo, es un bug: hay que 
-consolidarlo en `AGENTS.md` y dejar el import.
+### B. Memoria entre Sesiones sin Sobrecarga de Tokens
 
-### 4.1 Convivencia con `GEMINI.md`, `.agents/rules/` y `.claude/rules/`
+En proyectos multisesión, `SESSION.md` actúa como un cursor liviano (~250 tokens) que almacena:
 
-Es crucial distinguir entre dos tipos de archivos de instrucciones:
+* `Base commit`: El punto de partida de la fase actual.
+* `Recorded HEAD`: El commit exacto al momento del último checkpoint.
+* `Next action`: Una única instrucción atómica y ejecutable.
+* `Open decisions`: Dudas de arquitectura que requieren intervención humana.
 
-- **Contrato de Proceso (`AGENTS.md`)**: Gobierna la disciplina de trabajo del
-  agente (commits convencionales, suite verde en cada límite de commit, paradas
-  ante ambigüedad y ciclo de fases). Es neutral al stack y agnóstico de la herramienta.
-- **Reglas de Código y Dominio (`GEMINI.md`, `.agents/rules/`, `.claude/rules/`)**:
-  Gobiernan las directrices técnicas del proyecto (arquitectura, estilo de código,
-  librerías prohibidas o convenciones de API).
-
-**No colisionan ni se anulan:**
-En Antigravity, tanto `AGENTS.md` como `GEMINI.md` y las reglas modulares de `.agents/rules/*.md`
-se descubren y cargan automáticamente en el contexto del agente. De igual forma, en Claude Code,
-`CLAUDE.md` importa `@AGENTS.md` mientras que las reglas de `.claude/rules/` se cargan
-en paralelo. `AGENTS.md` formaliza el proceso sin interferir con las reglas técnicas ya
-establecidas en el repositorio.
-
-## 5. Flujo A — Bootstrap de un repo
-
-Cuándo: repo nuevo, o uno existente sin convenciones claras para agentes.
-
-### 5.1 Ejecución automatizada vía script CLI (Recomendado)
-
-Si tenés la skill en tu repositorio (por ejemplo en `.agents/skills/disciplined-scaffold`), podés ejecutar directamente:
+Al iniciar una nueva sesión, el agente ejecuta:
 
 ```bash
-bash .agents/skills/disciplined-scaffold/scripts/init.sh -t "pytest" --with-hook
+git merge-base --is-ancestor <base-commit> HEAD
+
 ```
-*(o ajustando la ruta relativa a donde hayas ubicado la skill en el proyecto)*.
 
-Opciones principales:
-- `-t, --test-cmd`: Comando de tests (`pytest`, `npm test`, `cargo test`, etc.).
-- `-p, --project-name`: Nombre del proyecto (por defecto: nombre del directorio).
-- `-d, --target-dir`: Directorio destino (por defecto: `.`).
-- `--with-hook`: Instala automáticamente `.git/hooks/commit-msg`.
-- `-f, --force`: Sobrescribe si ya existen los archivos de contrato.
+Si la historia de Git divergió (rebase, reset, force-push), el agente se detiene inmediatamente en lugar de alucinar sobre un estado que ya no existe.
 
-### 5.2 Ejecución conversacional con el agente
+### C. Jerarquía Estricta de Autoridad
 
-**Ejemplo de interacción real:**
+Ante cualquier discrepancia en el repositorio, rige este orden de precedencia:
 
-> **Humano:** "Arrancamos un proyecto nuevo en Python con FastAPI, quiero
-> setear las convenciones para trabajar con agentes."
->
-> **Agente** (consulta la skill, pregunta lo mínimo):
-> "¿Qué comando corre la suite de tests? ¿Instalo también el git hook que
-> rechaza commits que no sigan conventional commits?"
->
-> **Humano:** "pytest, y sí al hook."
->
-> **Agente:** ejecuta `scripts/init.sh` (o escribe los archivos siguiendo el
-> template) y reporta qué escribió.
+```text
+Git Reality (código y working tree) > PLAN-N.md (especificación) > SESSION.md (memoria)
 
-Resultado: dos archivos (`AGENTS.md` y `CLAUDE.md`) y un hook en `.git/hooks/commit-msg`,
-listos para que cualquier persona o agente que trabaje en ese repo siga las mismas reglas.
+```
 
-> [!NOTE]
-> **Alcance del bootstrap:** El Flujo A se limita exclusivamente a establecer las reglas base del repositorio (`AGENTS.md`, `CLAUDE.md` y opcionalmente el hook). **No crea planes (`PLAN-N.md`) ni checkpoints de sesión (`SESSION.md`)**, ya que en esta instancia aún no hay una fase de trabajo en progreso.
+Si la memoria del agente contradice los archivos en disco, manda el disco. Si el código requiere violar el plan, el agente se detiene y pide una enmienda formal.
 
-## 6. Flujo B — Ciclo de plan por fases
+---
 
-Cuándo: el trabajo va a llevar más de una sesión, más de una persona va a
-tocar el diff antes de mergear, o un error ahí sale caro. Un fix de un
-archivo no necesita esto — pedirlo directo, con buen mensaje de commit, 
-es más disciplinado que la ceremonia de un plan innecesario.
+## 4. Estructura del Repositorio de la Skill
 
-**Ejemplo de interacción real:**
+```text
+disciplined-scaffold/
+├── SKILL.md                      # Definición formal de la skill y entry points
+├── README.md                     # Documentación de referencia
+├── assets/
+│   ├── AGENTS.md.template        # Plantilla del contrato operativo
+│   ├── PLAN.md.template          # Plantilla de especificación SDD con CRIT-XX
+│   └── SESSION.md.template       # Plantilla del checkpoint de sesión
+├── references/
+│   ├── bootstrap.md              # Guía de inicialización de repositorios
+│   ├── plan-cycle.md             # Guía del ciclo de planificación y ejecución
+│   └── phase-close.md            # Protocolo de cierre de fase y auditoría de diff
+└── scripts/
+    ├── init.sh                   # Script de instalación inicial
+    ├── new-plan.sh               # Generador de nuevos planes numerados
+    └── commit-msg-hook.sh        # Hook opcional de commits convencionales
 
-> **Humano:** "Necesitamos migrar el sistema de autenticación de sesiones a
-> JWT. Es grande, va a llevar varias sesiones de trabajo."
->
-> **Agente** (antes de escribir nada, pregunta lo que cambiaría la forma
-> del plan, con su recomendación adjunta):
-> "¿Los refresh tokens rotativos entran en este ciclo o quedan para otro?
-> Recomiendo dejarlos afuera: duplican el alcance de F1 y no bloquean la
-> migración. ¿De acuerdo?"
->
-> **Humano:** "De acuerdo, afuera."
->
-> **Agente:** crea `PLAN-1.md` (usando `scripts/new-plan.sh "Migración JWT"` o desde
-> la plantilla), con el objetivo en una oración, evidencia de por qué, y fases
-> concretas (F1: capa de emisión y validación de tokens; F2: migración de los
-> endpoints; F3: deprecar el sistema viejo), cada una con spec, tests
-> (distinguiendo fixes de features), y criterios de aceptación **como checkboxes**.
-> Incluye "Out of scope" explícito con los refresh tokens. Antes de entregarlo
-> hace una auto-auditoría y te la reporta en dos líneas: *"revisé el plan: F2
-> tenía un criterio no verificable, lo reescribí."*
->
-> **Humano:** *revisa el plan, ajusta lo que haga falta, y confirma*.
->
-> **En cada sesión posterior:**
-> "Ejecutá la Fase F1 según PLAN-1.md."
->
-> El agente trabaja *solo esa fase*, y al terminar hace el cierre de fase
-> (sección 7). Se detiene ahí — alguien del equipo audita el diff antes de
-> mergear, como cualquier PR.
+```
 
-Si el agente encuentra el plan ambiguo o cree que está mal planteado,
-**para y pregunta** en vez de adivinar — es la regla no negociable de todo
-el sistema. Si hay una decisión que solo el humano puede tomar, el plan
-puede entregarse igual, pero con esa decisión marcada como bloque
-`## DECISIÓN ABIERTA` que el ejecutor tiene prohibido pasar de largo.
+---
 
-### 6.1 Trazabilidad formal de criterios (`CRIT-XX`)
+## 5. Ciclo de Trabajo en 4 Pasos
 
-Cada fase de un plan define entre 2 y 7 criterios de aceptación atómicos identificados de forma secuencial (`CRIT-01`, `CRIT-02`, etc.):
+### Paso 1: Bootstrap (Inicialización)
 
-- **Qué es:** Vinculación 1:1 entre la especificación en `PLAN-N.md` y la suite de pruebas del proyecto. Cada criterio automatizado debe tener al menos un test unitario, de integración o e2e cuyo nombre o descripción contenga obligatoriamente dicho identificador (ej: `test('CRIT-01: validate JWT issuance')` o `def test_crit_01_valid_token()`).
-- **Por qué se usa:** Elimina el sesgo de confirmación del agente. En desarrollo con LLMs, el fallo más común es asumir complacientemente que un criterio está resuelto y marcar el checkbox por inercia. Con esta regla, el agente tiene **estrictamente prohibido** marcar `- [x]` si no ejecutó un test con ese ID exacto y comprobó que pasó en verde en el estado actual del código.
-- **Criterios manuales:** Requerimientos que solo un humano puede validar (interfaces visuales, flujos manuales, deploys) también llevan identificador explícito (`CRIT-03: (manual) ...`), pero el agente los deja desmarcados (`- [ ]`) y los reporta como pendientes de revisión humana.
-- **Costo cero:** No requiere parsers de AST, linters externos ni dependencias adicionales en el repositorio; se apoya enteramente en la semántica estándar de cualquier test runner existente (`pytest`, `vitest`, `jest`, `cargo test`, `go test`).
+Para activar la disciplina en un proyecto nuevo o existente, el agente aplica la plantilla base:
 
-## 7. Flujo C — Cierre de fase y cierre de ciclo
+```bash
+./scripts/init.sh
 
-Novedad de la v2. Son dos momentos distintos:
+```
 
-**Al terminar una fase**, antes de que nadie empiece la siguiente, el
-agente:
+Esto genera `AGENTS.md` adaptado a la pila tecnológica del proyecto (comandos de test, linter y build).
 
-1. Marca `- [x]` **solo** los criterios de aceptación automatizados que cuenten
-   con un test pasando en verde cuyo nombre contenga el identificador `CRIT-XX`.
-   Lo que requiere verificación humana (criterios marcados como `(manual)`, algo
-   visual o en host remoto) queda sin marcar (`- [ ]`) y lo dice explícitamente:
-   *"el criterio CRIT-03: (manual) necesita tu chequeo visual, lo dejo sin marcar."*
-2. Escribe el reporte: mapeo de cada `CRIT-XX` marcado contra su test demostrable
-   (archivo y función de prueba), tabla de archivos cambiados, tests agregados **con
-   qué ataque o regresión protege cada uno**, desviaciones del plan con su
-   justificación, hallazgos que van a "Out of scope", y preguntas abiertas.
-3. **Refresca el checkpoint (`SESSION.md`)**: antes de parar, reescribe
-   `SESSION.md` con `Status: phase-closed, awaiting human audit`,
-   `Next action` configurada a la acción siguiente tras la aprobación, y
-   `Human review: pending` (ver sección 7.1).
-4. Se detiene.
+### Paso 2: Planificación (Spec First)
 
-**Al cerrar el ciclo** (después de la última fase, o cuando alguien
-pregunta "¿qué falta?"), el agente hace una pasada de solo lectura:
-lista los criterios sin marcar y clasifica cada uno (no hecho / hecho pero
-no verificable por él / obsoleto porque el diseño cambió), compara el diff
-real del ciclo contra lo que el plan pedía **en ambas direcciones** (¿hay
-algo en el repo que ninguna fase pidió? ¿algo que una fase pidió y no
-está?), nombra cualquier fuga de "Out of scope", y escribe los pendientes
-donde el equipo los guarde. No abre el plan siguiente por su cuenta — eso
-lo decide el equipo.
+Antes de escribir código, se genera la especificación de la feature:
 
-## 7.1 Persistencia entre sesiones (`SESSION.md`)
+```bash
+./scripts/new-plan.sh "Autenticación JWT y Rotación de Tokens"
 
-Al final de cada sesión — cierre una fase o no — el agente reescribe
-`SESSION.md` en la raíz del repo, desde `assets/SESSION.md.template`.
-Guarda la fase activa, un resumen de lo hecho, el estado de trabajo
-actual, la próxima acción, decisiones abiertas, y el resultado de la
-verificación (tests, lint, revisión humana).
+```
 
-Al arrancar cualquier sesión, si `SESSION.md` existe, el agente lo lee
-antes que nada, chequea que su `Base commit` sea antecesor del `HEAD`
-actual (`git merge-base --is-ancestor`) para detectar si el repo se movió
-por abajo (rebase, reset, force-push), coteja el working tree contra
-"Current working state", y retoma desde "Next action".
+El agente y el desarrollador definen el alcance, declaran qué queda fuera de alcance (*Out of Scope*) y redactan los criterios `CRIT-01`, `CRIT-02`. El plan debe ser validado por el humano antes de comenzar la implementación.
 
-El protocolo completo — qué se lee, qué se escribe, cuándo parar — vive
-en la sección "Session checkpoint" de `AGENTS.md` (la que escribe esta
-skill), no acá, para no duplicar el contrato en dos lugares.
+### Paso 3: Ejecución y Checkpoint
 
-**Alcance honesto de esto también:** es un archivo de texto que escribe
-el mismo agente que hizo el trabajo. Reduce lo que se pierde si una
-sesión muere a mitad de fase; no impide que un agente lo ignore, ni
-reemplaza locks o aprobación enforced en código — ver sección 9 para eso.
+El agente implementa fase por fase:
 
-> [!NOTE]
-> **¿Cuándo nace `SESSION.md`?** Este archivo no se inicializa de antemano durante el bootstrap ni al crear un plan. Se crea por primera vez al finalizar la primera sesión de trabajo real sobre una fase de un plan. Su presencia es el indicador inequívoco de que hay trabajo en curso para reanudar.
+1. Escribe el test que referencia a `CRIT-XX`.
+2. Escribe el código mínimo de producción para ponerlo en verde.
+3. Actualiza atómicamente `SESSION.md` (`.tmp` -> rename) al completar hitos significativos.
+4. Si se corta el contexto o la sesión, la siguiente reanuda directamente desde `Next action`.
 
-## 8. El git hook de commits convencionales
+### Paso 4: Cierre de Fase y Auditoría Humana
 
-Instalado en `.git/hooks/commit-msg`. Rechaza cualquier primera línea de
-commit que no siga el formato estándar de Conventional Commits (`tipo(scope): descripción`
-o `tipo: descripción`), permitiendo los tipos:
-`feat, fix, docs, style, refactor, perf, test, build, ci, chore, revert, release`.
+Al completar los criterios de la fase:
 
-Además, detecta y permite automáticamente operaciones nativas de Git:
-`Merge...`, `Revert...`, `revert:...`, `fixup!...`, `squash!...`, comentarios (`#`)
-y commits vacíos.
+1. El agente ejecuta la suite completa de pruebas.
+2. Genera una tabla de correspondencia entre cada `CRIT-XX` y el test que lo demuestra.
+3. Deja los criterios manuales sin marcar para revisión humana.
+4. **Se detiene.** No avanza a la siguiente fase hasta que el humano revise y apruebe el diff en Git.
 
-Ejemplos:
+---
 
-| Mensaje | Resultado |
-|---|---|
-| `feat(auth): add JWT validation` | ✅ pasa |
-| `perf(db): optimize user query` | ✅ pasa |
-| `Merge branch 'main' into dev` | ✅ pasa (operación nativa de git) |
-| `Update auth.py` | ❌ rechazado |
+## 6. Alcance Honesto y Garantías
 
-Bypass para una emergencia real: `git commit --no-verify`. Cada persona
-del equipo debería saber que existe — un hook que nadie sabe esquivar en
-un apuro termina desinstalado en vez de respetado.
+* **Es un arnés basado en contratos:** Funciona instruyendo al agente con reglas operativas inequívocas y validaciones en la terminal.
+* **Sin bloqueos de software pesados:** No introduce demonios en segundo plano, locks distribuidos ni parsers de AST. La rigidez la aportan Git y los tests del propio proyecto.
+* **Resiliencia ante fallos:** No promete transaccionalidad matemática ACID, pero reduce en más de un 90% el retrabajo y la pérdida de rumbo habitual en agentes autónomos.
 
-**Antes de instalar el hook en un repo del equipo, alguien debería leer
-`scripts/commit-msg-hook.sh` una vez** — es corto (25 líneas) y no hace
-nada más que lo descripto acá, pero cualquier script que se instala como
-git hook merece esa revisión, sin excepciones, aunque lo hayamos escrito
-nosotros mismos.
+```
 
-## 9. Relación con herramientas transaccionales (`context-guard`) — cuándo usar cada una
-
-`disciplined-scaffold` y herramientas transaccionales como `context-guard`
-abordan distintas etapas y necesidades del desarrollo asistido por agentes:
-
-- **Disciplina de commits + ciclos planificados en texto**: sin necesidad de
-  que el estado sobreviva a nivel de base de datos o daemon entre sesiones →
-  `disciplined-scaffold` alcanza, es transparente y no añade dependencias.
-- **Memoria transaccional con enforcement en código**: estado que se
-  recupera solo tras un crash, aprobación humana obligatoria en código
-  (no solo en texto), conteo determinista de tareas que el agente no puede
-  falsear o coordinación multi-agente → requiere un motor transaccional
-  dedicado como `context-guard`.
-
-**Camino de ascenso:** un `PLAN-N.md` generado por esta skill está
-estructurado de modo que herramientas de workflow transaccional pueden
-leerlo e importarlo directamente sin tener que reescribir las fases a mano.
-
-No son excluyentes: un mismo repositorio puede utilizar el contrato ligero de
-`disciplined-scaffold` para el día a día y recurrir a herramientas más
-pesadas en migraciones o tareas críticas.
-
-## 10. Troubleshooting
-
-**"El agente no usa la skill aunque describí una tarea grande."**
-La activación es por relevancia de la description, no garantizada.
-Invocación manual: `/disciplined-scaffold` en Claude Code fuerza la carga.
-En claude.ai chat, sé más explícito en el pedido ("quiero un PLAN de
-fases para esto").
-
-**"Claude Code no ve el contrato."** Verificá que exista `CLAUDE.md` en la
-raíz con la línea `@AGENTS.md`. Sin ese archivo, Claude Code ignora el
-`AGENTS.md` por completo — no es un bug de la skill, es una limitación
-conocida de Claude Code (sección 4).
-
-**"El agente marcó un criterio que no está cumplido."** Es el modo de
-falla conocido de los checkboxes (sección 2): son cooperativos. Corregilo
-en el plan, y si pasa seguido con un modelo en particular, considerá
-incorporar un harness con validación determinista de tareas para ese proyecto.
-
-**"El hook rechaza un mensaje que me parece válido."**
-Revisá que tenga el formato `tipo(scope): descripción` — el scope entre
-paréntesis es opcional, pero el `tipo:` y el espacio después de los dos
-puntos son obligatorios. Si de verdad hace falta un commit fuera de
-formato (un merge automático, por ejemplo), `--no-verify`.
-
-**"Dos integrantes tienen contratos distintos en el mismo repo."** Solo
-puede pasar si alguien editó el `AGENTS.md` generado directamente en vez
-de proponer el cambio por PR contra la skill (sección 11). El contrato de
-un repo es único y versionado como cualquier otro archivo — no hay copias
-personales.
-
-**"¿Puedo usar esto sin instalar el hook?"** Sí, es opcional en ambos
-flujos. El contrato en `AGENTS.md` sigue pidiendo commits convencionales;
-sin el hook, esa regla queda como las demás — cooperativa, no forzada.
-
-**"¿El agente ejecuta un `init` automático cuando descubre la skill?"**
-No. La skill nunca ejecuta acciones destructivas ni inicializaciones por su cuenta. Tiene 3 puntos de entrada claros (A: bootstrap, B: planificar, C: cerrar/continuar fase). Solo realiza el bootstrap si se lo pedís explícitamente o si el contexto indica de forma directa que se están acordando las convenciones del repositorio.
-
-**"¿Es necesario ejecutar `scripts/init.sh` como un comando de shell?"**
-No es obligatorio. `scripts/init.sh` es solo un atajo determinista para acelerar el bootstrap en un solo paso sin que el LLM tenga que transcribir el template. El agente puede realizar exactamente lo mismo de manera conversacional (`"configurá las convenciones de este repo"`), o bien podés disparar la skill vía comandos de tu editor o CLI (como `/disciplined-scaffold` en Claude Code o un comando `/scaffold init` en OpenCode).
-
-**"¿Por qué `init.sh` o el bootstrap no crean un `SESSION.md` inicial?"**
-Porque en el modelo de esta skill, la sola existencia de `SESSION.md` en la raíz del repo le indica al agente que una sesión anterior quedó interrumpida y debe ser reanudada antes que nada. Si existiera desde el inicio sin un plan activo, confundiría a los agentes haciéndoles buscar commits base y acciones siguientes inexistentes. `SESSION.md` nace al final de la primera sesión de ejecución de una fase.
-
-## 11. Gobernanza — cómo evoluciona el contrato sin divergir
-
-Una vez que la skill está en varios repos del equipo, van a surgir pedidos
-de cambio: un tipo de commit adicional, una regla nueva de estilo. Tratarlo
-como código, no como convención verbal:
-
-1. Cambios al `SKILL.md`, a los templates de `assets/` o a las referencias
-   de `references/` se proponen por PR contra el repo donde vive la skill
-   (o contra cada proyecto, si no hay un repo central — ver punto 3).
-2. El PR se revisa como cualquier otro — la revisión de equipo es el
-   control de calidad del contrato en sí.
-3. Si el equipo tiene varios repos con esta skill instalada, considerá
-   centralizarla en un repo propio (`team-skills` o similar) e
-   incorporarla a cada proyecto como submódulo o mediante un script de
-   sync corto — evita que un fix al contrato tenga que repetirse a mano en
-   cada repo. No lo automaticen antes de que la fricción de mantenerlo a
-   mano sea real; con dos o tres repos, copiar a mano en el mismo PR
-   alcanza.
-
-## 12. Referencia rápida
-
-| Acción | Comando / paso |
-|---|---|
-| Agregar al proyecto (project-local) | Clonar o submódulo en `.agents/skills/disciplined-scaffold` (o `.claude/skills/`) |
-| Arrancar el contrato en un repo nuevo | `bash <skill>/scripts/init.sh -t "<CMD>" --with-hook` o pedirlo al agente (Flujo A) |
-| Empezar un trabajo grande | `bash <skill>/scripts/new-plan.sh "<TÍTULO>"` o pedir un plan al agente (Flujo B) |
-| Ejecutar una fase | `"Ejecutá la Fase F{N} según PLAN-{N}.md"` |
-| Checkpoint entre sesiones | Se actualiza `SESSION.md` al finalizar cada sesión (Sección 7.1) |
-| Cerrar una fase | `"Terminé F{N}"` → actualiza `SESSION.md`, marca checkboxes y reporta (Flujo C) |
-| Ver qué falta al final del ciclo | `"¿Qué quedó pendiente?"` (Flujo C) |
-| Forzar la skill en Claude Code | `/disciplined-scaffold` |
-| Bypass del hook en una emergencia | `git commit --no-verify` |
-| ¿Necesito memoria transaccional real? | Ver sección 9 (motores transaccionales) |
+```
