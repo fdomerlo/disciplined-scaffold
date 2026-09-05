@@ -115,10 +115,13 @@ Give the user the session-start prompt to reuse for each phase:
 
 ## What this does not give you
 
-No file here is transactional. If the session dies mid-phase, there is no
-`manifest.json` to resume from — the human re-reads `PLAN-N.md`, checks
-`git log` and `git status`, and tells the next session which phase is
-actually in progress. Ticked checkboxes help, but they are written by an
-agent that could have ticked them wrong; they are a convenience, not a
-guarantee. If a project ever needs code-enforced, crash-resilient state
-instead — see "Upgrade path" in SKILL.md.
+No file here is transactional. `SESSION.md` (see the "Session checkpoint"
+clause in `AGENTS.md`) narrows the gap: the next session reads where the
+last one stopped, with its base commit checked against the current `HEAD`,
+instead of reconstructing everything from `git log` and `git status`
+alone. It is still a prose note written by the same agent that did the
+work, not a `manifest.json` a program enforces — no locks, no rollback,
+no protection against two agents writing it at once. Ticked checkboxes
+have the same limit: a convenience, not a guarantee. If a project ever
+needs code-enforced, crash-resilient state instead — see "Upgrade path"
+in SKILL.md.

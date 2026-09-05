@@ -20,6 +20,11 @@ they ask for guarantees this can't give.
 
 ## Three entry points
 
+**Before choosing one of these: check for `SESSION.md` at the repo
+root.** If it exists, a previous session is resuming — follow its
+"Session checkpoint" protocol in `AGENTS.md` first. A resumed session
+almost always routes to B (continuing an in-progress phase), never A.
+
 **A — Bootstrap a repo** (new project, or adding discipline to an
 existing one). See `references/bootstrap.md`.
 
@@ -65,6 +70,10 @@ act — same principle the contract itself enforces on the executor.
 - `PLAN-N.md` at repo root (or `plans/`) — from `assets/PLAN.md.template`.
   N = next unused number; follow the repo's existing convention if there
   is one (e.g. `PLAN-2.4` → `PLAN-2.5`), otherwise plain integers from 1.
+- `SESSION.md` at repo root (written at the end of every session, whether
+  or not a phase closed) — from `assets/SESSION.md.template`. Read first,
+  before anything else, if present at session start. See the "Session
+  checkpoint" clause in `AGENTS.md` for the read/write protocol.
 - Optional: `scripts/commit-msg-hook.sh` installed as
   `.git/hooks/commit-msg` — the one rule in this skill that can actually
   be enforced in code instead of prose, so it is. Offer it, don't force it.

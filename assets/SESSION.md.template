@@ -1,0 +1,29 @@
+# Session Checkpoint
+
+- **Plan:** {{PLAN_FILE}}
+- **Phase:** {{PHASE}}
+- **Status:** {{STATUS}}
+- **Updated:** {{UPDATED_ISO}}
+- **Base commit:** {{BASE_COMMIT}}
+
+## Completed in this session
+
+{{COMPLETED_BULLETS}}
+
+## Current working state
+
+{{WORKING_STATE_BULLETS}}
+
+## Next action
+
+{{NEXT_ACTION}}
+
+## Open decisions
+
+{{OPEN_DECISIONS_BULLETS}}
+
+## Verification
+
+- `{{TEST_COMMAND}}`: {{TEST_RESULT}}
+- `{{LINT_COMMAND}}`: {{LINT_RESULT}}
+- Human review: {{REVIEW_STATUS}}

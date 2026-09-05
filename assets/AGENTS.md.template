@@ -31,6 +31,36 @@ cycle. This changes the rules:
   guards against), any deviation from the plan with justification, and
   open questions. Then stop — the human audits the diff before merge.
 
+### Session checkpoint (`SESSION.md`)
+
+If `SESSION.md` exists at the repo root, a previous session left the
+current phase in progress. Before doing anything else:
+
+1. Read it. Do not start from memory or from the plan alone.
+2. Check that its `Base commit` is an ancestor of the current `HEAD`:
+   `git merge-base --is-ancestor <base-commit> HEAD`. If it is not
+   (non-zero exit), the repository moved in a way the checkpoint cannot
+   account for (rebase, reset, force-push, an unrelated commit touching
+   the same files) — STOP and tell the human, do not guess which state
+   is current.
+3. Compare `git status` / `git diff` against "Current working state". If
+   they disagree, say so before proceeding — the checkpoint may be stale.
+4. If `Human review: pending` is still set, STOP and ask before
+   continuing — an unresolved review does not resolve itself with time.
+5. Resume from "Next action" instead of re-deriving it from the plan.
+
+At the end of every session — whether or not the phase closed — rewrite
+`SESSION.md` from `assets/SESSION.md.template`. Write it atomically:
+save the new content to `SESSION.md.tmp`, then `mv SESSION.md.tmp
+SESSION.md`. Never edit `SESSION.md` in place. `Base commit` is always
+`git rev-parse HEAD` at write time and `Updated` the current UTC
+timestamp — obtained by running the command, never typed from memory.
+
+`SESSION.md` is a convenience, not a guarantee: like the checkboxes in
+`PLAN-N.md`, it is written by the same agent doing the work, and it can
+be wrong. It survives a crash better than an unwritten thought — nothing
+more.
+
 ## Definition of done for any phase
 
 - All acceptance criteria in the plan for this phase: met and demonstrated,

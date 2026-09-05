@@ -57,14 +57,19 @@ flowchart TD
 ## 2. Alcance honesto — leer antes de instalar
 
 Esto es un **contrato de prosa**: un archivo que el agente lee y, con
-buena probabilidad, sigue. No hay estado en disco a prueba de crash, no
-hay locks, no hay nada que se recupere solo si una sesión muere a mitad de
-una fase. Eso es aceptable para la enorme mayoría del trabajo — es
-literalmente lo mismo que ya hacía cualquier desarrollador disciplinado
-antes de que existieran agentes. Si algún proyecto del equipo necesita
-memoria transaccional real (estado que sobrevive un crash, aprobación
-enforced en código, múltiples agentes coordinando sobre el mismo estado),
-eso requiere una herramienta con enforcement en código — ver sección 9.
+buena probabilidad, sigue. Un archivo adicional, `SESSION.md` (ver
+sección 7.1), reduce el hueco de las sesiones que mueren a mitad de fase:
+guarda dónde quedó la última sesión y de qué commit partía, para que la
+siguiente no dependa solo de releer `PLAN-N.md` y adivinar. Pero sigue
+sin haber locks, sin aprobación enforced en código, sin coordinación
+multi-agente — es una nota de texto escrita por el mismo agente que hizo
+el trabajo, no un estado que un programa garantice. Eso es aceptable para
+la enorme mayoría del trabajo — es literalmente lo mismo que ya hacía
+cualquier desarrollador disciplinado antes de que existieran agentes. Si
+algún proyecto del equipo necesita memoria transaccional real (estado que
+sobrevive un crash, aprobación enforced en código, múltiples agentes
+coordinando sobre el mismo estado), eso requiere una herramienta con
+enforcement en código — ver sección 9.
 
 Esto incluye los checkboxes de los planes: **marcar un criterio como
 cumplido es un acto cooperativo del mismo agente que hizo el trabajo.**
@@ -293,6 +298,29 @@ algo en el repo que ninguna fase pidió? ¿algo que una fase pidió y no
 está?), nombra cualquier fuga de "Out of scope", y escribe los pendientes
 donde el equipo los guarde. No abre el plan siguiente por su cuenta — eso
 lo decide el equipo.
+
+## 7.1 Persistencia entre sesiones (`SESSION.md`)
+
+Al final de cada sesión — cierre una fase o no — el agente reescribe
+`SESSION.md` en la raíz del repo, desde `assets/SESSION.md.template`.
+Guarda la fase activa, un resumen de lo hecho, el estado de trabajo
+actual, la próxima acción, decisiones abiertas, y el resultado de la
+verificación (tests, lint, revisión humana).
+
+Al arrancar cualquier sesión, si `SESSION.md` existe, el agente lo lee
+antes que nada, chequea que su `Base commit` sea antecesor del `HEAD`
+actual (`git merge-base --is-ancestor`) para detectar si el repo se movió
+por abajo (rebase, reset, force-push), coteja el working tree contra
+"Current working state", y retoma desde "Next action".
+
+El protocolo completo — qué se lee, qué se escribe, cuándo parar — vive
+en la sección "Session checkpoint" de `AGENTS.md` (la que escribe esta
+skill), no acá, para no duplicar el contrato en dos lugares.
+
+**Alcance honesto de esto también:** es un archivo de texto que escribe
+el mismo agente que hizo el trabajo. Reduce lo que se pierde si una
+sesión muere a mitad de fase; no impide que un agente lo ignore, ni
+reemplaza locks o aprobación enforced en código — ver sección 9 para eso.
 
 ## 8. El git hook de commits convencionales
 

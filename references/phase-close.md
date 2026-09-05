@@ -51,6 +51,14 @@ plan to stay clean — ask once and remember the preference for the cycle:
   plan's "Out of scope", not into the next phase.
 - Open questions for the human.
 
+### Refresh the checkpoint
+
+Before stopping, rewrite `SESSION.md` per the "Session checkpoint" clause
+in `AGENTS.md`: `Status: phase-closed, awaiting human audit`,
+`Next action` set to what starts once the human approves, and
+`Human review: pending`. This is the same write as any other session
+close — closing a phase does not exempt it.
+
 Then stop. Do not start the next phase — the human audits the diff first.
 
 ---
